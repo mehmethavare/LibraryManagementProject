@@ -2,13 +2,16 @@
 using Library.API.Context;
 using Library.API.Dtos.BorrowRecordDtos;
 using Library.API.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace Library.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize] // Bu controller altındaki tüm aksiyonlar için login zorunlu
     public class BorrowRecordsController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -20,7 +23,9 @@ namespace Library.API.Controllers
             _mapper = mapper;
         }
 
+        // 🔹 1) Tüm ödünç kayıtlarını getir (SADECE ADMIN)
         [HttpGet]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetAll()
         {
             var records = await _context.BorrowRecords
@@ -32,17 +37,91 @@ namespace Library.API.Controllers
             return Ok(result);
         }
 
+        // 🔹 2) Belirli kullanıcının geçmişi (Admin kullanıcıların kitap geçmişini görebilsin diye)
+        [HttpGet("user/{userId}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetByUserId(int userId)
+        {
+            var records = await _context.BorrowRecords
+                .Include(x => x.Book)
+                .Include(x => x.User)
+                .Where(x => x.UserId == userId)
+                .OrderByDescending(x => x.BorrowDate)
+                .ToListAsync();
+
+            var result = _mapper.Map<List<BorrowRecordListDto>>(records);
+            return Ok(result);
+        }
+
+        // 🔹 3) Giriş yapan kullanıcının AKTİF ödünçleri
+        [HttpGet("me/active")]
+        [Authorize(Roles = "User,Admin")]
+        public async Task<IActionResult> GetMyActive()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim))
+                return Unauthorized();
+
+            if (!int.TryParse(userIdClaim, out var currentUserId))
+                return Unauthorized();
+
+            var records = await _context.BorrowRecords
+                .Include(x => x.Book)
+                .Include(x => x.User)
+                .Where(x => x.UserId == currentUserId && !x.IsReturned)
+                .OrderBy(x => x.ReturnDate)
+                .ToListAsync();
+
+            var result = _mapper.Map<List<BorrowRecordListDto>>(records);
+            return Ok(result);
+        }
+
+        // 🔹 4) Giriş yapan kullanıcının TÜM ödünç geçmişi
+        [HttpGet("me/history")]
+        [Authorize(Roles = "User,Admin")]
+        public async Task<IActionResult> GetMyHistory()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim))
+                return Unauthorized();
+
+            if (!int.TryParse(userIdClaim, out var currentUserId))
+                return Unauthorized();
+
+            var records = await _context.BorrowRecords
+                .Include(x => x.Book)
+                .Include(x => x.User)
+                .Where(x => x.UserId == currentUserId)
+                .OrderByDescending(x => x.BorrowDate)
+                .ToListAsync();
+
+            var result = _mapper.Map<List<BorrowRecordListDto>>(records);
+            return Ok(result);
+        }
+
+        // 🔹 5) Kitap ödünç alma (UserId TOKEN'dan geliyor)
         [HttpPost]
+        [Authorize(Roles = "User,Admin")]
         public async Task<IActionResult> Create([FromBody] BorrowRecordCreateDto dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var book = await _context.Books.FindAsync(dto.BookId);
-            var user = await _context.Users.FindAsync(dto.UserId);
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim))
+                return Unauthorized();
 
-            if (book == null || user == null)
-                return BadRequest("Invalid BookId or UserId.");
+            if (!int.TryParse(userIdClaim, out var currentUserId))
+                return Unauthorized();
+
+            var book = await _context.Books.FindAsync(dto.BookId);
+            var user = await _context.Users.FindAsync(currentUserId);
+
+            if (book == null)
+                return BadRequest("Book not found.");
+
+            if (user == null)
+                return BadRequest("User not found.");
 
             if (book.Status == BookStatus.Unavailable)
                 return BadRequest("This book is currently borrowed by another user.");
@@ -50,7 +129,7 @@ namespace Library.API.Controllers
             var borrow = new BorrowRecord
             {
                 BookId = dto.BookId,
-                UserId = dto.UserId,
+                UserId = currentUserId,
                 BorrowDate = DateTime.Now,
                 ReturnDate = DateTime.Now.AddDays(7),
                 IsReturned = false
@@ -70,15 +149,32 @@ namespace Library.API.Controllers
             });
         }
 
-        [HttpPut("return")]
+        // 🔹 6) Kitap iade etme
+        //     - Admin her kaydı iade edebilir
+        //     - Normal kullanıcı sadece kendi kaydını iade edebilir
+        [HttpPut("return/{id}")]
+        [Authorize(Roles = "User,Admin")]
         public async Task<IActionResult> ReturnBook(int id)
         {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim))
+                return Unauthorized();
+
+            if (!int.TryParse(userIdClaim, out var currentUserId))
+                return Unauthorized();
+
+            var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
             var record = await _context.BorrowRecords
                 .Include(x => x.Book)
                 .FirstOrDefaultAsync(x => x.Id == id);
 
             if (record == null)
                 return NotFound("Borrow record not found.");
+
+            // Admin değilse ve kayıt ona ait değilse iade edemesin
+            if (currentUserRole != "Admin" && record.UserId != currentUserId)
+                return Forbid();
 
             if (record.IsReturned)
                 return BadRequest("This book is already returned.");
@@ -98,7 +194,9 @@ namespace Library.API.Controllers
             });
         }
 
+        // 🔹 7) Kayıt silme (SADECE ADMIN)
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
         {
             var record = await _context.BorrowRecords.FindAsync(id);

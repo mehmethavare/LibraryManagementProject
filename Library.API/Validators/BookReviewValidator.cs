@@ -8,7 +8,6 @@ namespace Library.API.Validators
         public BookReviewCreateValidator()
         {
             RuleFor(x => x.BookId).GreaterThan(0);
-            RuleFor(x => x.UserId).GreaterThan(0);
             RuleFor(x => x.Comment)
                 .NotEmpty().WithMessage("Comment cannot be empty.")
                 .MaximumLength(1000);

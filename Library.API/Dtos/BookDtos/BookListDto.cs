@@ -1,4 +1,6 @@
-﻿namespace Library.API.Dtos.BookDtos
+﻿using Library.API.Entities;
+
+namespace Library.API.Dtos.BookDtos
 {
     public class BookListDto
     {
@@ -7,5 +9,6 @@
         public string? AuthorName { get; set; }
         public string? CategoryName { get; set; }
         public int? PublishYear { get; set; }
+        public BookStatus Status { get; set; }          // Available / Unavailable
     }
 }

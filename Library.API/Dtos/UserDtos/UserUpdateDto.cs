@@ -3,9 +3,14 @@
     public class UserUpdateDto
     {
         public int Id { get; set; }
-        public string Name { get; set; } = null!;
-        public string Surname { get; set; } = null!;
-        public string Email { get; set; } = null!;
+
+        public string Name { get; set; } = string.Empty;
+        public string Surname { get; set; } = string.Empty;
+
+        public string Email { get; set; } = string.Empty;
         public string? PhoneNumber { get; set; }
+
+        public string Role { get; set; } = "User";
+
     }
 }

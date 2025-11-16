@@ -11,27 +11,39 @@ namespace Library.API.MappingProfiles
     {
         public AutoMapperProfile()
         {
-            //Book
+            // 🔹 Book
             CreateMap<Book, BookListDto>().ReverseMap();
             CreateMap<Book, BookCreateDto>().ReverseMap();
             CreateMap<Book, BookUpdateDto>().ReverseMap();
 
-            //User
+            // 🔹 User
             CreateMap<User, UserListDto>().ReverseMap();
             CreateMap<User, UserCreateDto>().ReverseMap();
             CreateMap<User, UserUpdateDto>().ReverseMap();
 
-            //BorrowRecord
-            CreateMap<BorrowRecord, BorrowRecordCreateDto>().ReverseMap();
-            CreateMap<BorrowRecord, BorrowRecordListDto>()
-                .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => $"{src.User!.Name} {src.User!.Surname}"))
-                .ForMember(dest => dest.BookTitle, opt => opt.MapFrom(src => src.Book!.Title));
+            // 🔹 BorrowRecord
+            // Artık Create için DTO'da sadece BookId var ve controller'da entity'yi manuel oluşturuyoruz.
+            // Yine de ihtiyaç olursa diye DTO -> Entity mapping dursun:
+            CreateMap<BorrowRecordCreateDto, BorrowRecord>();
 
-            //BookReview
-            CreateMap<BookReview, BookReviewCreateDto>().ReverseMap();
+            CreateMap<BorrowRecord, BorrowRecordListDto>()
+                .ForMember(dest => dest.UserName,
+                    opt => opt.MapFrom(src => $"{src.User!.Name} {src.User!.Surname}"))
+                .ForMember(dest => dest.BookTitle,
+                    opt => opt.MapFrom(src => src.Book!.Title));
+
+            // 🔹 BookReview
+            // Create sırasında DTO -> Entity mapping (UserId'yi yine controller'da JWT'den set ediyoruz)
+            CreateMap<BookReviewCreateDto, BookReview>();
+
+            // Update sırasında sadece Comment + Rating güncelliyoruz, BookId/UserId değiştirmiyoruz
+            CreateMap<BookReviewUpdateDto, BookReview>();
+
             CreateMap<BookReview, BookReviewListDto>()
-                .ForMember(dest => dest.BookTitle, opt => opt.MapFrom(src => src.Book!.Title))
-                .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => $"{src.User!.Name} {src.User!.Surname}"));
+                .ForMember(dest => dest.BookTitle,
+                    opt => opt.MapFrom(src => src.Book!.Title))
+                .ForMember(dest => dest.UserName,
+                    opt => opt.MapFrom(src => $"{src.User!.Name} {src.User!.Surname}"));
         }
     }
 }
