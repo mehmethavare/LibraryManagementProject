@@ -1,0 +1,82 @@
+﻿@model Library.UI.Models.BookCreateViewModel
+
+@{
+    ViewData["Title"] = "Yeni Kitap Ekle";
+}
+
+<div class="container mt-5" style="max-width: 800px;">
+    <div class="card shadow border-0">
+        <div class="card-header bg-primary text-white py-3">
+            <div class="d-flex align-items-center">
+                <i class="fa-solid fa-book-medical fa-2x me-3"></i>
+                <h3 class="mb-0">Yeni Kitap Ekle</h3>
+            </div>
+        </div>
+
+        <div class="card-body p-4">
+            <form asp-action="Create" method="post">
+
+                <div class="mb-4">
+                    <label asp-for="KitapAdi" class="form-label fw-bold text-secondary">Kitap Adı</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light"><i class="fa-solid fa-book"></i></span>
+                        <input asp-for="KitapAdi" class="form-control" placeholder="Kitabın ismini giriniz..." />
+                    </div>
+                    <span asp-validation-for="KitapAdi" class="text-danger small"></span>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <label asp-for="YazarAdi" class="form-label fw-bold text-secondary">Yazar Adı</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="fa-solid fa-user-pen"></i></span>
+                            <input asp-for="YazarAdi" class="form-control" placeholder="Yazarın Adı Soyadı" />
+                        </div>
+                        <span asp-validation-for="YazarAdi" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6 mb-4">
+                        <label asp-for="YayinciAdi" class="form-label fw-bold text-secondary">Yayıncı / Yayınevi</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="fa-solid fa-building"></i></span>
+                            <input asp-for="YayinciAdi" class="form-control" placeholder="Yayınevi Adı" />
+                        </div>
+                        <span asp-validation-for="YayinciAdi" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <label asp-for="Kategori" class="form-label fw-bold text-secondary">Kategori</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="fa-solid fa-tags"></i></span>
+                            <input asp-for="Kategori" class="form-control" placeholder="Örn: Roman, Bilim Kurgu" />
+                        </div>
+                        <span asp-validation-for="Kategori" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6 mb-4">
+                        <label asp-for="YayinYili" class="form-label fw-bold text-secondary">Yayın Yılı</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="fa-solid fa-calendar-days"></i></span>
+                            <input asp-for="YayinYili" type="number" class="form-control" placeholder="YYYY" />
+                        </div>
+                        <span asp-validation-for="YayinYili" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <hr class="my-4" />
+
+                <div class="d-flex justify-content-end gap-2">
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="fa-solid fa-arrow-left me-2"></i> Listeye Dön
+                    </a>
+                    <button type="submit" class="btn btn-primary px-4">
+                        <i class="fa-solid fa-save me-2"></i> Kitabı Kaydet
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>

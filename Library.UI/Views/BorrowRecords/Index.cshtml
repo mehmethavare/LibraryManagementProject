@@ -1,0 +1,69 @@
+﻿@model IEnumerable<Library.UI.Models.BorrowRecordListViewModel>
+@inject IHttpContextAccessor HttpContextAccessor
+
+@{
+    ViewData["Title"] = "Borrow Records";
+    // Kullanıcı rolünü oturumdan çekiyoruz
+    var userRole = HttpContextAccessor.HttpContext?.Session?.GetString("role");
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<div class="container mt-4">
+
+    <div class="d-flex align-items-center mb-3">
+        @if (userRole == "admin")
+        {
+            <h2 class="text-dark"><i class="fa-solid fa-user-gear text-primary me-2"></i>Ödünç İşlemleri Paneli</h2>
+        }
+        else
+        {
+            <h2 class="text-dark"><i class="fa-solid fa-book-reader text-success me-2"></i>Ödünç Aldığım Kitaplar</h2>
+        }
+    </div>
+
+    <hr class="mb-4" />
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="fa-solid fa-circle-check me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <i class="fa-solid fa-circle-exclamation me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="fa-solid fa-circle-check me-2"></i> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (userRole == "admin")
+    {
+        <partial name="_AdminBorrowList" model="Model" />
+    }
+    else if (userRole == "user")
+    {
+        <partial name="_UserBorrowList" model="Model" />
+    }
+    else
+    {
+        <div class="alert alert-warning text-center p-4">
+            <i class="fa-solid fa-lock fa-2x mb-3"></i><br>
+            <h5>Erişim Engellendi</h5>
+            <p>Bu sayfayı görüntülemek için lütfen giriş yapınız.</p>
+        </div>
+    }
+
+</div>

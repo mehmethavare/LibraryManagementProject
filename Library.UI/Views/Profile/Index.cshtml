@@ -1,0 +1,81 @@
+﻿@model Library.UI.Models.UserUpdateViewModel
+
+@{
+    ViewData["Title"] = "Profilim";
+}
+
+<div class="container mt-5" style="max-width: 700px;">
+    <div class="card shadow border-0">
+        <div class="card-header bg-primary text-white text-center py-4">
+            <i class="fa-solid fa-user-circle fa-4x mb-2"></i>
+            <h3 class="mb-0">@Model.Name @Model.Surname</h3>
+            <span class="badge bg-light text-primary mt-2">@Model.Role</span>
+        </div>
+
+        <div class="card-body p-4">
+            <h5 class="mb-4 text-muted border-bottom pb-2">Hesap Bilgileri</h5>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="fw-bold text-secondary small text-uppercase">Ad</label>
+                    <p class="fs-5 border-bottom pb-1">@Model.Name</p>
+                </div>
+                <div class="col-md-6">
+                    <label class="fw-bold text-secondary small text-uppercase">Soyad</label>
+                    <p class="fs-5 border-bottom pb-1">@Model.Surname</p>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="fw-bold text-secondary small text-uppercase">E-Posta Adresi</label>
+                <div class="d-flex align-items-center">
+                    <i class="fa-solid fa-envelope text-muted me-2"></i>
+                    <p class="fs-5 mb-0">@Model.Email</p>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="fw-bold text-secondary small text-uppercase">Telefon Numarası</label>
+                <div class="d-flex align-items-center">
+                    <i class="fa-solid fa-phone text-muted me-2"></i>
+                    <p class="fs-5 mb-0">
+                        @(string.IsNullOrEmpty(Model.PhoneNumber) ? "-" : Model.PhoneNumber)
+                    </p>
+                </div>
+            </div>
+
+            <div class="d-grid gap-2">
+                <a asp-action="Edit" class="btn btn-warning btn-lg text-dark">
+                    <i class="fa-solid fa-pen-to-square me-2"></i> Bilgileri Düzenle
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <script>
+        Swal.fire({
+            icon: 'success',
+            title: 'İşlem Başarılı',
+            text: '@Html.Raw(TempData["SuccessMessage"])',
+            confirmButtonColor: '#0d6efd',
+            timer: 3000
+        });
+    </script>
+}
+
+@if (TempData["Error"] != null)
+{
+    <script>
+        Swal.fire({
+            icon: 'error',
+            title: 'Hata',
+            text: '@Html.Raw(TempData["Error"])',
+            confirmButtonColor: '#d33'
+        });
+    </script>
+}

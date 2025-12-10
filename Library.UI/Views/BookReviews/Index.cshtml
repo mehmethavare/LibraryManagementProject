@@ -1,0 +1,198 @@
+﻿@model IEnumerable<Library.UI.Models.BookReviewViewModel>
+
+@{
+    ViewData["Title"] = "Değerlendirmelerim";
+
+    var userRole = Context.Session.GetString("role");
+    var currentUserIdString = Context.Session.GetString("userId");
+    int.TryParse(currentUserIdString, out int currentUserId);
+}
+
+<div class="container mt-4">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <h4 class="fw-bold text-primary mb-0">
+                <i class="fa-solid fa-star me-2"></i>
+                @(userRole == "admin" ? "Tüm Değerlendirmeler" : "Değerlendirmelerim")
+            </h4>
+
+            <div class="d-flex align-items-center">
+                <span class="text-muted small me-2 fw-bold">Sıralama:</span>
+                <select id="sortSelect" class="form-select form-select-sm" style="width: auto;" onchange="sortReviews()">
+                    <option value="newest">Yeniden Eskiye</option>
+                    <option value="oldest">Eskiden Yeniye</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="card-body">
+
+            @* Başarı/Hata Mesajları *@
+            @if (TempData["Success"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+                    <i class="fa-solid fa-check-circle me-2"></i> @Html.Raw(TempData["Success"])
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+                </div>
+            }
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+                    <i class="fa-solid fa-triangle-exclamation me-2"></i> @Html.Raw(TempData["Error"])
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+                </div>
+            }
+
+            @if (!Model.Any())
+            {
+                <div class="alert alert-light text-center border p-4">
+                    <i class="fa-regular fa-comment-dots fa-3x text-muted mb-3"></i>
+                    <p class="mb-0 text-muted">Henüz herhangi bir kitap değerlendirmesi bulunmuyor.</p>
+                    <a asp-controller="Books" asp-action="Index" class="btn btn-sm btn-outline-primary mt-3">Kitapları İncele</a>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle" id="reviewsTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Kitap Adı</th>
+                                @if (userRole == "admin")
+                                {
+                                    <th>Kullanıcı</th>
+                                }
+                                <th>Puan</th>
+                                <th style="width: 40%;">Yorum</th>
+                                <th>Tarih</th>
+                                <th class="text-end">İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @* Varsayılan olarak Server tarafında da en iyi sıralamayla gelsin.
+                               Ayrıca JS için data-rating ve data-date ekliyoruz.
+                            *@
+                            @foreach (var item in Model.OrderByDescending(x => x.Rating).ThenByDescending(x => x.CreatedAt))
+                            {
+                                <tr data-rating="@item.Rating" data-date="@item.CreatedAt.Ticks">
+                                    <td class="fw-bold text-dark">
+                                        <a asp-controller="Books" asp-action="Details" asp-route-id="@item.BookId" class="text-decoration-none text-dark">
+                                            @item.BookTitle
+                                        </a>
+                                    </td>
+
+                                    @if (userRole == "admin")
+                                    {
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-light rounded-circle d-flex align-items-center justify-content-center me-2" style="width:30px; height:30px;">
+                                                    <i class="fa-solid fa-user text-secondary small"></i>
+                                                </div>
+                                                @item.UserName
+                                            </div>
+                                        </td>
+                                    }
+
+                                    <td>
+                                        <div class="text-warning small">
+                                            @for (int i = 1; i <= 5; i++)
+                                            {
+                                                if (item.Rating >= i)
+                                                {
+                                                    <i class="fa-solid fa-star"></i>
+                                                }
+                                                else
+                                                {
+                                                    <i class="fa-regular fa-star text-muted opacity-25"></i>
+                                                }
+                                            }
+                                            <span class="text-muted ms-1" style="font-size:0.8em">(@item.Rating)</span>
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        <span class="text-secondary small">@item.Comment</span>
+                                    </td>
+
+                                    <td class="text-muted small">
+                                        @item.CreatedAt.ToString("dd.MM.yyyy")
+                                    </td>
+
+                                    <td class="text-end">
+                                        <div class="d-flex justify-content-end gap-2">
+                                            @{
+                                                var isCurrentUserOwner = item.UserId == currentUserId;
+                                            }
+
+                                            @if (userRole != "admin" && isCurrentUserOwner)
+                                            {
+                                                <a asp-controller="BookReviews" asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning" title="Düzenle">
+                                                    <i class="fa-solid fa-pen"></i>
+                                                </a>
+
+                                                <form asp-action="Delete" asp-route-id="@item.Id" method="post" onsubmit="return confirm('Bu yorumu silmek istediğinize emin misiniz?');">
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Sil">
+                                                        <i class="fa-solid fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            }
+
+                                            @if (userRole == "admin")
+                                            {
+                                                <form asp-action="Delete" asp-route-id="@item.Id" method="post" onsubmit="return confirm('Yönetici olarak bu yorumu silmek istediğinize emin misiniz?');">
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Sil (Yönetici)">
+                                                        <i class="fa-solid fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<script>
+    function sortReviews() {
+        var selectBox = document.getElementById("sortSelect");
+        var selectedValue = selectBox.value;
+
+        var table = document.getElementById("reviewsTable");
+        var tbody = table.querySelector("tbody");
+        var rows = Array.from(tbody.querySelectorAll("tr"));
+
+        rows.sort(function (rowA, rowB) {
+            // Data attribute'larından değerleri al
+            var ratingA = parseInt(rowA.getAttribute("data-rating"));
+            var ratingB = parseInt(rowB.getAttribute("data-rating"));
+
+            var dateA = parseInt(rowA.getAttribute("data-date")); // Ticks kullandığımız için sayısal karşılaştırma yapabiliriz
+            var dateB = parseInt(rowB.getAttribute("data-date"));
+
+            // 1. ÖNCELİK: PUAN (Her zaman yüksekten düşüğe)
+            if (ratingA !== ratingB) {
+                return ratingB - ratingA; // Büyük olan üstte
+            }
+
+            // 2. ÖNCELİK: TARİH (Seçime göre değişir)
+            if (selectedValue === "newest") {
+                // Yeniden Eskiye (Büyük tarih üstte)
+                return dateB - dateA;
+            } else {
+                // Eskiden Yeniye (Küçük tarih üstte)
+                return dateA - dateB;
+            }
+        });
+
+        // Sıralanan satırları tabloya geri yükle
+        tbody.innerHTML = "";
+        rows.forEach(function (row) {
+            tbody.appendChild(row);
+        });
+    }
+</script>

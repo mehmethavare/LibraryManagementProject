@@ -1,0 +1,81 @@
+﻿@model Library.UI.Models.UserUpdateViewModel
+
+@{
+    ViewData["Title"] = "Hesabım";
+}
+
+<div class="card shadow-lg border-0 my-4 p-4">
+    <div class="card-header bg-primary text-white text-center">
+        <h3 class="mb-0"><i class="fa-solid fa-user-circle me-2"></i> Profil Bilgilerim</h3>
+    </div>
+    <div class="card-body">
+
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+        <form asp-action="Profile" method="post" id="profileUpdateForm">
+            <input type="hidden" asp-for="Id" />
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label asp-for="Name" class="form-label fw-bold">Ad:</label>
+                    <input asp-for="Name" class="form-control" readonly />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Surname" class="form-label fw-bold">Soyad:</label>
+                    <input asp-for="Surname" class="form-control" readonly />
+                </div>
+            </div>
+
+            <hr class="my-4" />
+
+            <div class="mb-3">
+                <label asp-for="Email" class="form-label fw-bold">E-Posta Adresi (Güncelleme): <span class="text-danger">*</span></label>
+                <input asp-for="Email" class="form-control" type="email" required />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="PhoneNumber" class="form-label fw-bold">Telefon Numarası (Güncelleme):</label>
+                <input asp-for="PhoneNumber" class="form-control" type="tel" placeholder="Örn: 5xx xxx xx xx" />
+                <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+            </div>
+
+            <div class="d-grid mt-4">
+                <button type="submit" class="btn btn-success btn-lg">
+                    <i class="fa-solid fa-save me-2"></i> Bilgilerimi Güncelle
+                </button>
+            </div>
+
+        </form>
+    </div>
+    <div class="card-footer text-muted text-center">
+        <small>Güncellemeleriniz sistem yöneticisi tarafından incelenecektir.</small>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        // İsteğe bağlı: E-posta ve Telefon numarasını düzenlerken odaklanma (focus) efekti
+        document.addEventListener('DOMContentLoaded', function() {
+            var emailInput = document.getElementById('Email');
+            var phoneInput = document.getElementById('PhoneNumber');
+
+            // Odaklandığında kenarlık rengini değiştir
+            emailInput.addEventListener('focus', function() {
+                this.classList.add('border-warning');
+            });
+            emailInput.addEventListener('blur', function() {
+                this.classList.remove('border-warning');
+            });
+
+            phoneInput.addEventListener('focus', function() {
+                this.classList.add('border-warning');
+            });
+            phoneInput.addEventListener('blur', function() {
+                this.classList.remove('border-warning');
+            });
+        });
+    </script>
+}

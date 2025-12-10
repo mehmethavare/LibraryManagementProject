@@ -13,6 +13,8 @@ namespace Library.API.Context
         public DbSet<Book> Books { get; set; }
         public DbSet<BorrowRecord> BorrowRecords { get; set; }
         public DbSet<BookReview> BookReviews { get; set; }
+        public DbSet<UserRequest> UserRequests { get; set; }
+        public DbSet<Announcement> Announcements { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

@@ -7,10 +7,17 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
 
+// 🔹 FluentValidation için
+using FluentValidation;
+using Library.API.Dtos.RequestDtos; // assembly referansı için herhangi bir DTO yeterli
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
+
+// 🔹 Validators klasöründeki tüm AbstractValidator<T> sınıflarını tara ve kaydet
+builder.Services.AddValidatorsFromAssemblyContaining<RequestCreateDto>();
 
 // Database
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -92,6 +99,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseRouting();
 
 // SIRA ÖNEMLİ: önce Authentication, sonra Authorization
 app.UseAuthentication();

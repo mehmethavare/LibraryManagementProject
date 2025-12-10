@@ -1,0 +1,33 @@
+﻿@model Library.UI.Models.BookReviewCreateViewModel
+
+@{
+    ViewData["Title"] = "Create Review";
+}
+
+<h1>Create Review</h1>
+
+<form asp-action="Create" method="post">
+    <div class="form-group">
+        <label asp-for="BookId"></label>
+        <input asp-for="BookId" class="form-control" />
+        <span asp-validation-for="BookId" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Comment"></label>
+        <input asp-for="Comment" class="form-control" />
+        <span asp-validation-for="Comment" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Rating"></label>
+        <input asp-for="Rating" class="form-control" type="number" min="1" max="5" />
+        <span asp-validation-for="Rating" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary mt-3">Create</button>
+</form>
+
+<p>
+    <a asp-action="Index">Back to List</a>
+</p>

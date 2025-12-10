@@ -1,0 +1,106 @@
+﻿@model Library.UI.Models.BookUpdateViewModel
+
+<div class="modal-header bg-warning text-white py-3 justify-content-center position-relative">
+    <h5 class="modal-title fs-5 w-100 text-center" id="editModalLabel">
+        <i class="fa-solid fa-pen-to-square me-2"></i> KİTAP DÜZENLEME
+    </h5>
+    <button type="button" class="btn-close btn-close-white position-absolute end-0 me-3" data-bs-dismiss="modal" aria-label="Kapat"></button>
+</div>
+
+<form id="editBookForm" asp-controller="Books" asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Id" />
+
+    <div class="modal-body p-4">
+
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+        <div class="row">
+
+            <div class="col-md-7 border-end pe-4">
+
+                <div class="mb-3">
+                    <label asp-for="Title" class="form-label fw-bold">Kitap Adı</label>
+                    <input asp-for="Title" class="form-control form-control-sm" />
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="AuthorName" class="form-label fw-bold">Yazar</label>
+                        <input asp-for="AuthorName" class="form-control" />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="CategoryName" class="form-label fw-bold">Kategori</label>
+                        <input asp-for="CategoryName" class="form-control form-control-sm" />
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="PublishYear" class="form-label fw-bold">Yayın Yılı</label>
+                    <input asp-for="PublishYear" type="number" class="form-control form-control-sm" />
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="PublisherName" class="form-label fw-bold">Yayıncı Adı</label>
+                    <input asp-for="PublisherName" type="number" class="form-control form-control-sm" />
+                </div>
+            </div>
+
+            <div class="col-md-5 text-center ps-4">
+                <h6 class="text-secondary border-bottom pb-1 mb-3">🖼️ Kapak Görseli</h6>
+
+                <div class="border rounded p-2 mb-3 shadow-sm w-100" style="max-width: 250px; min-height: 250px;">
+                    <img id="coverPreview"
+                         src="@(string.IsNullOrEmpty(Model.CoverImageUrl) ? "/images/placeholder.png" : Model.CoverImageUrl)"
+                         alt="Kapak Resmi"
+                         style="max-width: 100%; height: auto; max-height: 230px;"
+                         class="img-fluid rounded"
+                         onerror="this.onerror=null;this.src='/images/placeholder.png';" />
+                </div>
+
+                <div class="mb-3 w-100">
+                    <input asp-for="CoverImageUrl" class="form-control form-control-sm" placeholder="Kapak Resmi URL"
+                           oninput="document.getElementById('coverPreview').src = this.value || '/images/placeholder.png';" />
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal / Kapat</button>
+        <button type="submit" class="btn btn-warning text-white btn-sm" id="saveButton">
+            <i class="fa-solid fa-save me-1"></i> Değişiklikleri Kaydet
+        </button>
+    </div>
+</form>
+
+<script>
+    $(document).ready(function () {
+        $('#editBookForm').submit(function (e) {
+            e.preventDefault();
+            var form = $(this);
+            var url = form.attr('asp-action') || form.attr('action');
+
+            $.ajax({
+                type: "POST",
+                url: url,
+                data: form.serialize(),
+
+                success: function (response) {
+                    if (response.success === true) {
+                        // Başarılı: Modalı kapat ve sayfayı yenile (görseli kesinleştirir)
+                        $('#modalPlaceholder').modal('hide');
+                        window.location.reload();
+                    } else {
+                        // HATA VAR: Controller PartialView döndürdüyse (ModelState hatası), içeriği güncelle
+                        $('#modalPlaceholder .modal-content').html(response);
+                    }
+                },
+                error: function (xhr, status, error) {
+                    alert("Kayıt sırasında beklenmeyen bir hata oluştu. Sunucu hatası.");
+                }
+            });
+        });
+    });
+</script>

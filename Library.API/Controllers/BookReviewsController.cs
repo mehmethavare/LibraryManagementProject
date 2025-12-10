@@ -121,7 +121,7 @@ namespace Library.API.Controllers
                 .AnyAsync(r => r.UserId == currentUserId && r.BookId == dto.BookId);
 
             if (alreadyReviewed)
-                return BadRequest("Bu kitabı zaten değerlendirdiniz. Güncellemek için PUT kullanın.");
+                return BadRequest("Bu kitabı zaten değerlendirdiniz.");
 
             var entity = new BookReview
             {

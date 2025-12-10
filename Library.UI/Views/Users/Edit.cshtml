@@ -1,0 +1,139 @@
+﻿@model Library.UI.Models.UserUpdateViewModel
+@{
+    ViewData["Title"] = "Kullanıcı Düzenle";
+}
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fa-solid fa-user-pen"></i> Kullanıcı Düzenle</h2>
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="fa-solid fa-arrow-left"></i> Listeye Dön
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fa-solid fa-id-card"></i> Genel Bilgiler</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Edit" method="post">
+                        <input type="hidden" asp-for="Id" />
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Name" class="form-label">Ad</label>
+                                <input asp-for="Name" class="form-control" />
+                                <span asp-validation-for="Name" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Surname" class="form-label">Soyad</label>
+                                <input asp-for="Surname" class="form-control" />
+                                <span asp-validation-for="Surname" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Email" class="form-label">E-Posta Adresi</label>
+                            <input asp-for="Email" class="form-control" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="PhoneNumber" class="form-label">Telefon</label>
+                                <input asp-for="PhoneNumber" class="form-control" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Role" class="form-label">Rol</label>
+                                <select asp-for="Role" class="form-select">
+                                    <option value="User">User (Standart Üye)</option>
+                                    <option value="Admin">Admin (Yönetici)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fa-solid fa-check"></i> Değişiklikleri Kaydet
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fa-solid fa-key"></i> Şifre Değiştir</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-light border small">
+                        <i class="fa-solid fa-info-circle"></i> Buradan kullanıcının şifresini sıfırlayabilirsiniz. Eski şifreyi bilmenize gerek yoktur.
+                    </div>
+
+                    <form asp-action="AdminChangePassword" method="post">
+                        <input type="hidden" name="userId" value="@Model.Id" />
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Yeni Şifre</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
+                                <input type="text" name="newPassword" class="form-control" placeholder="Yeni şifreyi girin..." required minlength="6">
+                            </div>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-warning text-dark">
+                                <i class="fa-solid fa-rotate"></i> Şifreyi Güncelle
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // 1. Başarılı İşlem (Yeşil Popup)
+        var successMsg = '@Html.Raw(TempData["Success"])';
+        if (successMsg) {
+            Swal.fire({
+                icon: 'success',
+                title: 'İşlem Başarılı',
+                text: successMsg,
+                confirmButtonColor: '#198754'
+            });
+        }
+
+        // 2. Standart Hata (Varsa)
+        var errorMsg = '@Html.Raw(TempData["Error"])';
+        if (errorMsg) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Hata',
+                html: errorMsg,
+                confirmButtonColor: '#d33'
+            });
+        }
+
+        // 3. GÜVENLİK UYARISI (Son Admin Kontrolü)
+        // Controller'da TempData["SweetError"] olarak gönderdiğimiz mesaj
+        var sweetErrorMsg = '@Html.Raw(TempData["SweetError"])';
+        if (sweetErrorMsg) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'İşlem Engellendi',
+                html: sweetErrorMsg,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'Tamam, Anlaşıldı'
+            });
+        }
+    </script>
+}

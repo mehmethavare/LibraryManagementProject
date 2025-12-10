@@ -1,0 +1,104 @@
+﻿@model IEnumerable<Library.UI.Models.UserListViewModel>
+
+@{
+    ViewData["Title"] = "Kullanıcılar";
+}
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Kullanıcı Yönetimi</h2>
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="fa-solid fa-user-plus"></i> Yeni Kullanıcı
+        </a>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <table class="table table-hover table-striped mb-0 align-middle">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="py-3 ps-4">Ad</th>
+                        <th class="py-3">Soyad</th>
+                        <th class="py-3">E-Posta</th>
+                        <th class="py-3">Telefon</th>
+                        <th class="py-3">Rol</th>
+                        <th class="py-3 text-end pe-4">İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var item in Model)
+                        {
+                            <tr>
+                                <td class="ps-4 fw-bold">@item.Name</td>
+                                <td>@item.Surname</td>
+                                <td>@item.Email</td>
+                                <td>@item.PhoneNumber</td>
+
+                                <td>
+                                    <span class="badge @(item.Role == "Admin" ? "bg-danger" : "bg-secondary")">
+                                        @item.Role
+                                    </span>
+                                </td>
+                                <td class="text-end pe-4">
+                                    <div class="d-flex justify-content-end gap-2">
+
+                                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-info" title="Detaylar">
+                                            <i class="fa-solid fa-circle-info"></i>
+                                        </a>
+
+                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-warning" title="Düzenle">
+                                            <i class="fa-solid fa-pen"></i>
+                                        </a>
+
+                                        <form asp-action="Delete" asp-route-id="@item.Id" method="post" onsubmit="return confirm('Bu kullanıcıyı silmek istediğinize emin misiniz?');">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Sil">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <i class="fa-solid fa-users-slash fa-2x mb-3"></i><br>
+                                Sistemde kayıtlı kullanıcı bulunamadı.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <script>
+        Swal.fire({
+            icon: 'success',
+            title: 'Başarılı!',
+            text: '@TempData["Success"]',
+            confirmButtonColor: '#3085d6',
+            timer: 3000
+        });
+    </script>
+}
+@if (TempData["Error"] != null)
+{
+    <script>
+        Swal.fire({
+            icon: 'error',
+            title: 'Hata!',
+            text: '@TempData["Error"]',
+            confirmButtonColor: '#d33'
+        });
+    </script>
+}

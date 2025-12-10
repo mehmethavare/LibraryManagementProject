@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Library.API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251115213633_SeedAdminUser")]
-    partial class SeedAdminUser
+    [Migration("20251210195808_AddUserRequestsTable")]
+    partial class AddUserRequestsTable
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -161,6 +161,47 @@ namespace Library.API.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("Library.API.Entities.UserRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AdminResponse")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserRequests");
+                });
+
             modelBuilder.Entity("Library.API.Entities.BookReview", b =>
                 {
                     b.HasOne("Library.API.Entities.Book", "Book")
@@ -199,6 +240,17 @@ namespace Library.API.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Library.API.Entities.UserRequest", b =>
+                {
+                    b.HasOne("Library.API.Entities.User", "User")
+                        .WithMany("Requests")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Library.API.Entities.Book", b =>
                 {
                     b.Navigation("BookReviews");
@@ -211,6 +263,8 @@ namespace Library.API.Migrations
                     b.Navigation("BookReviews");
 
                     b.Navigation("BorrowRecords");
+
+                    b.Navigation("Requests");
                 });
 #pragma warning restore 612, 618
         }

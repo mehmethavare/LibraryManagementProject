@@ -1,0 +1,33 @@
+﻿@model Library.UI.Models.UserListViewModel
+
+@{
+    ViewData["Title"] = "Kullanıcı Sil";
+}
+
+<div class="container mt-5" style="max-width: 500px;">
+    <div class="card border-danger shadow">
+        <div class="card-header bg-danger text-white">
+            <h4 class="mb-0"><i class="fa-solid fa-triangle-exclamation me-2"></i>Kullanıcıyı Sil</h4>
+        </div>
+        <div class="card-body text-center p-4">
+            <p class="lead">Bu kullanıcıyı silmek istediğinize emin misiniz?</p>
+
+            <div class="alert alert-light border">
+                <h5 class="fw-bold text-dark">@Model.Name @Model.Surname</h5>
+                <p class="mb-0 text-muted">@Model.Email</p>
+                <span class="badge bg-secondary mt-2">@Model.Role</span>
+            </div>
+
+            <p class="text-danger small">Bu işlem geri alınamaz!</p>
+
+            <form asp-action="Delete" method="post" class="mt-4 d-flex justify-content-center gap-2">
+                <input type="hidden" asp-for="Id" />
+
+                <a asp-action="Index" class="btn btn-secondary px-4">İptal</a>
+                <button type="submit" class="btn btn-danger px-4">
+                    <i class="fa-solid fa-trash me-1"></i> Evet, Sil
+                </button>
+            </form>
+        </div>
+    </div>
+</div>

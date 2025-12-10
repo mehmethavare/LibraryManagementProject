@@ -9,6 +9,7 @@ namespace Library.API.Dtos.BookDtos
         public string? AuthorName { get; set; }
         public string? CategoryName { get; set; }
         public int? PublishYear { get; set; }
+        public string? CoverImageUrl { get; set; }
         public BookStatus Status { get; set; }          // Available / Unavailable
     }
 }

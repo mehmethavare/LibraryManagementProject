@@ -5,21 +5,14 @@
 namespace Library.API.Migrations
 {
     /// <inheritdoc />
-    public partial class SeedAdminUser : Migration
+    public partial class AddCoverImageUrlToBook : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<string>(
-                name: "Password",
-                table: "Users",
-                type: "nvarchar(max)",
-                nullable: false,
-                defaultValue: "");
-
-            migrationBuilder.AddColumn<string>(
-                name: "Role",
-                table: "Users",
+                name: "ImageUrl",
+                table: "Books",
                 type: "nvarchar(max)",
                 nullable: false,
                 defaultValue: "");
@@ -29,12 +22,8 @@ namespace Library.API.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "Password",
-                table: "Users");
-
-            migrationBuilder.DropColumn(
-                name: "Role",
-                table: "Users");
+                name: "ImageUrl",
+                table: "Books");
         }
     }
 }

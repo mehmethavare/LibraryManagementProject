@@ -1,32 +1,35 @@
-using Library.UI.Models;
 using Microsoft.AspNetCore.Mvc;
-using System.Diagnostics;
+using Microsoft.AspNetCore.Http; // Session için gerekli
 
 namespace Library.UI.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly ILogger<HomeController> _logger;
-
-        public HomeController(ILogger<HomeController> logger)
-        {
-            _logger = logger;
-        }
-
+        // Proje açýlýnca direkt Dashboard'a yönlendir
         public IActionResult Index()
         {
-            return View();
+            return RedirectToAction("Dashboard");
+        }
+
+        // ÝÞTE EKSÝK OLAN KISIM BU:
+        public IActionResult Dashboard()
+        {
+            // Kullanýcý giriþ yapmamýþsa Login sayfasýna at
+            var role = HttpContext.Session.GetString("role");
+            if (string.IsNullOrEmpty(role))
+            {
+                return RedirectToAction("Index", "Login");
+            }
+
+            // Rol bilgisini sayfaya gönder (Admin mi User mý?)
+            ViewBag.UserRole = role;
+
+            return View(); // Bu komut Views/Home/Dashboard.cshtml dosyasýný arar
         }
 
         public IActionResult Privacy()
         {
             return View();
-        }
-
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        public IActionResult Error()
-        {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
     }
 }

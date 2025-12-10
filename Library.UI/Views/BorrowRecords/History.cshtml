@@ -1,0 +1,31 @@
+﻿@model IEnumerable<Library.UI.Models.BorrowRecordListViewModel>
+
+@{
+    ViewData["Title"] = "Borrow History";
+}
+
+<h1>Borrow History</h1>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Book</th>
+            <th>Borrow Date</th>
+            <th>Return Date</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.BookTitle</td>
+                <td>@item.BorrowDate</td>
+                <td>@(item.ReturnDate?.ToString() ?? "-")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<p>
+    <a asp-action="Index" class="btn btn-secondary">Back</a>
+</p>

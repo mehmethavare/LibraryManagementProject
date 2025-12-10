@@ -98,6 +98,8 @@ namespace Library.API.Controllers
                 return NotFound("Book not found.");
 
             _mapper.Map(dto, book);
+
+            book.PublisherName = dto.PublisherName;
             await _context.SaveChangesAsync();
 
             return NoContent();

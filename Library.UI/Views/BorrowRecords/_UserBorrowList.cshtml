@@ -1,0 +1,68 @@
+﻿@model IEnumerable<Library.UI.Models.BorrowRecordListViewModel>
+@using System.Linq
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info mt-3">Henüz ödünç aldığınız bir kitap bulunmamaktadır.</div>
+}
+else
+{
+    <table class="table table-striped table-hover mt-3">
+        <thead class="table-primary">
+            <tr>
+                <th>Kitap Adı</th>
+                <th>Ödünç Tarihi</th>
+                <th>İade Durumu / Tarihi</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.OrderByDescending(x => x.BorrowDate))
+            {
+                // API değiştirmeden UI tarafında gecikme kontrolü
+                bool isOverdue = !item.IsReturned && item.ReturnDate.HasValue && item.ReturnDate.Value < DateTime.Now;
+
+                <tr class="@(isOverdue ? "table-danger" : "")">
+                    <td>
+                        <span class="fw-bold">@item.BookTitle</span>
+
+                        @if (isOverdue)
+                        {
+                            <span class="badge bg-danger ms-2 blink-animation">
+                                <i class="fa-solid fa-triangle-exclamation"></i> GECİKTİ
+                            </span>
+                        }
+                    </td>
+                    <td>@item.BorrowDate.ToShortDateString()</td>
+                    <td>
+                        @if (item.IsReturned)
+                        {
+                            <span class="badge bg-success me-1">İade Edildi</span>
+                            @if (item.ReturnDate.HasValue)
+                            {
+                                <span class="text-muted small">(@item.ReturnDate.Value.ToShortDateString())</span>
+                            }
+                        }
+                        else
+                        {
+                            @if (isOverdue)
+                            {
+                                <span class="badge bg-danger mb-1">Süresi Doldu!</span>
+                                <div class="small text-danger fw-bold">
+                                    <i class="fa-solid fa-clock"></i> Lütfen en kısa sürede iade ediniz.
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning text-dark me-1">Ödünç Alındı</span>
+                                @if (item.ReturnDate.HasValue)
+                                {
+                                    <span class="text-muted small">(Son Tarih: @item.ReturnDate.Value.ToShortDateString())</span>
+                                }
+                            }
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

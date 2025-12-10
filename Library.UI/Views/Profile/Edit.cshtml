@@ -1,0 +1,95 @@
+﻿@model Library.UI.Models.UserUpdateViewModel
+
+@{
+    ViewData["Title"] = "Bilgileri Düzenle";
+}
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<div class="container mt-5" style="max-width: 700px;">
+    <div class="card shadow border-0">
+        <div class="card-header bg-primary text-white text-center py-4">
+            <i class="fa-solid fa-user-pen fa-4x mb-2"></i>
+            <h3 class="mb-0">@Model.Name @Model.Surname</h3>
+            <span class="badge bg-light text-primary mt-2">@Model.Role</span>
+        </div>
+
+        <div class="card-body p-4">
+            <h5 class="mb-4 text-muted border-bottom pb-2">Hesap Bilgilerini Düzenle</h5>
+
+            <form asp-action="Edit" method="post">
+                <input type="hidden" asp-for="Id" />
+                <input type="hidden" asp-for="Role" />
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="Name" class="form-label fw-bold text-secondary">Ad</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="fa-solid fa-user"></i></span>
+                            <input asp-for="Name" class="form-control" placeholder="Adınız" />
+                        </div>
+                        <span asp-validation-for="Name" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="Surname" class="form-label fw-bold text-secondary">Soyad</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="fa-solid fa-user"></i></span>
+                            <input asp-for="Surname" class="form-control" placeholder="Soyadınız" />
+                        </div>
+                        <span asp-validation-for="Surname" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Email" class="form-label fw-bold text-secondary">E-Posta Adresi</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light"><i class="fa-solid fa-envelope"></i></span>
+                        <input asp-for="Email" class="form-control" placeholder="ornek@email.com" />
+                    </div>
+                    <span asp-validation-for="Email" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-4">
+                    <label asp-for="PhoneNumber" class="form-label fw-bold text-secondary">Telefon Numarası</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light"><i class="fa-solid fa-phone"></i></span>
+                        <input asp-for="PhoneNumber" class="form-control" placeholder="5XX XXX XX XX" />
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a asp-action="Index" class="btn btn-secondary me-md-2">İptal</a>
+                    <button type="submit" class="btn btn-success px-4">
+                        <i class="fa-solid fa-floppy-disk me-2"></i> Kaydet
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <script>
+        Swal.fire({
+            icon: 'success',
+            title: 'Başarılı!',
+            text: '@Html.Raw(TempData["SuccessMessage"])',
+            confirmButtonColor: '#198754',
+            timer: 3000
+        });
+    </script>
+}
+
+@if (ViewBag.ErrorMessage != null)
+{
+    <script>
+        Swal.fire({
+            icon: 'error',
+            title: 'Hata!',
+            text: '@Html.Raw(ViewBag.ErrorMessage)',
+            confirmButtonColor: '#d33'
+        });
+    </script>
+}

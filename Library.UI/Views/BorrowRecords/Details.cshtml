@@ -1,0 +1,30 @@
+﻿@model Library.UI.Models.BorrowRecordListViewModel
+
+@{
+    ViewData["Title"] = "Borrow Details";
+}
+
+<h1>Borrow Details</h1>
+
+<div>
+    <h4>@Model.BookTitle</h4>
+    <hr />
+
+    <dl class="row">
+        <dt class="col-sm-2">Borrowed By</dt>
+        <dd class="col-sm-10">@Model.UserName</dd>
+
+        <dt class="col-sm-2">Borrow Date</dt>
+        <dd class="col-sm-10">@Model.BorrowDate</dd>
+
+        <dt class="col-sm-2">Return Date</dt>
+        <dd class="col-sm-10">@Model.ReturnDate</dd>
+
+        <dt class="col-sm-2">Returned?</dt>
+        <dd class="col-sm-10">@Model.IsReturned</dd>
+    </dl>
+</div>
+
+<p>
+    <a asp-action="Index" class="btn btn-secondary">Back</a>
+</p>

@@ -1,0 +1,40 @@
+﻿@model Library.UI.Models.BookUpdateViewModel
+
+@{
+    // Admin kontrolü için Session'dan rolü alıyoruz
+    var userRole = Context.Request.HttpContext.Session.GetString("role");
+}
+
+<div class="modal-header bg-primary text-white">
+    <h5 class="modal-title">@Model.Title Detayları</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+</div>
+
+<div class="modal-body">
+    <div class="row">
+        <div class="col-md-6"><strong>Yazar:</strong></div>
+        <div class="col-md-6">@Model.AuthorName</div>
+    </div>
+    <div class="row">
+        <div class="col-md-6"><strong>Kategori:</strong></div>
+        <div class="col-md-6">@Model.CategoryName</div>
+    </div>
+    <hr />
+    
+    <p>Yayın Yılı: @Model.PublishYear</p>
+</div>
+
+<div class="modal-footer">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+
+    @if (userRole == "admin")
+    {
+        <button type="button" class="btn btn-warning text-white btn-sm btn-open-edit-modal" data-book-id="@Model.Id">
+            <i class="fa-solid fa-pen-to-square"></i> Düzenle
+        </button>
+
+        <form asp-controller="Books" asp-action="Delete" asp-route-id="@Model.Id" method="post" onsubmit="return confirm('Silmek istediğinizden emin misiniz?');" class="d-inline">
+            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+        </form>
+    }
+</div>
