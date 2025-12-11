@@ -131,7 +131,8 @@ namespace Library.API.Controllers
                 BookId = dto.BookId,
                 UserId = currentUserId,
                 BorrowDate = DateTime.Now,
-                ReturnDate = DateTime.Now.AddDays(7),
+                //ReturnDate = DateTime.Now.AddDays(7),
+                ReturnDate = DateTime.Now.AddSeconds(30), // TEST İÇİN SÜREYİ KISALTTIM
                 IsReturned = false
             };
 

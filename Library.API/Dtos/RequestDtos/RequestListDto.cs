@@ -11,6 +11,8 @@ namespace Library.API.Dtos.RequestDtos
         public RequestStatus Status { get; set; }  // Pending / Resolved / Rejected
 
         public DateTime CreatedAt { get; set; }
+        public string? AdminResponse { get; set; }
+        public string Message { get; set; }
 
         // Admin tarafı listeler için
         public string? UserName { get; set; }

@@ -66,7 +66,20 @@ namespace Library.API.Controllers
             var user = await _context.Users
                 .FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail);
 
-            if (user == null || user.Password != request.Password)
+            // Kullanıcı hiç yoksa → klasik mesaj
+            if (user == null)
+                return Unauthorized("Email veya şifre hatalı.");
+
+            // ❌ Hesap silinmişse (3. uyarıdan sonra)
+            if (user.IsDeleted)
+                return Unauthorized("USÜLSÜZ KULLANIMDAN DOLAYI HESABINIZ SİLİNMİŞTİR");
+
+            // 🔒 Hesap kilitliyse (2. uyarıdan sonra)
+            if (user.IsLocked)
+                return Unauthorized("HESABINIZ KİLİTLENDİ LÜTFEN YETKİLİ İLE GÖRÜŞÜN");
+
+            // Kullanıcı var ama şifre yanlışsa
+            if (user.Password != request.Password)
                 return Unauthorized("Email veya şifre hatalı.");
 
             var tokenString = GenerateJwtToken(user);
@@ -80,7 +93,9 @@ namespace Library.API.Controllers
                     name = user.Name,
                     surname = user.Surname,
                     email = user.Email,
-                    role = user.Role
+                    role = user.Role,
+                    warningCount = user.WarningCount,
+                    isLocked = user.IsLocked
                 }
             });
         }
@@ -93,7 +108,6 @@ namespace Library.API.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            // Basit zorunlu alan kontrolü (DataAnnotations yoksa)
             if (string.IsNullOrWhiteSpace(request.Name) ||
                 string.IsNullOrWhiteSpace(request.Surname) ||
                 string.IsNullOrWhiteSpace(request.Email) ||
@@ -102,36 +116,35 @@ namespace Library.API.Controllers
                 return BadRequest("Name, Surname, Email ve Password zorunludur.");
             }
 
-            // Şifre için basit bir kural (istersen sıkılaştırabiliriz)
             if (request.Password.Length < 6)
                 return BadRequest("Şifre en az 6 karakter olmalıdır.");
 
             var normalizedEmail = request.Email.Trim().ToLower();
 
-            // Email daha önce kullanılmış mı?
             var emailExists = await _context.Users
                 .AnyAsync(u => u.Email.ToLower() == normalizedEmail);
 
             if (emailExists)
                 return BadRequest("Bu email ile zaten bir kullanıcı kayıtlı.");
 
-            // Yeni kullanıcı oluştur
             var user = new User
             {
                 Name = request.Name.Trim(),
                 Surname = request.Surname.Trim(),
-                Email = request.Email.Trim(), // orijinal case'i koruyoruz
+                Email = request.Email.Trim(),
                 PhoneNumber = string.IsNullOrWhiteSpace(request.PhoneNumber)
                     ? null
                     : request.PhoneNumber.Trim(),
-                Password = request.Password,   // ileride hash'e çevirebiliriz
-                Role = "User"                  // Register'dan her zaman normal kullanıcı çıkar
+                Password = request.Password,
+                Role = "User",
+                WarningCount = 0,
+                IsLocked = false,
+                IsDeleted = false
             };
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            // Kayıt sonrası otomatik login: token üret
             var tokenString = GenerateJwtToken(user);
 
             return Ok(new
@@ -143,7 +156,9 @@ namespace Library.API.Controllers
                     name = user.Name,
                     surname = user.Surname,
                     email = user.Email,
-                    role = user.Role
+                    role = user.Role,
+                    warningCount = user.WarningCount,
+                    isLocked = user.IsLocked
                 }
             });
         }

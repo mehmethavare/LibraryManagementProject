@@ -7,5 +7,6 @@ namespace Library.API.Dtos.RequestDtos
         public RequestStatus Status { get; set; }  // Pending / Resolved / Rejected
 
         public string? AdminResponse { get; set; }
+        public string Message { get; set; }
     }
 }
