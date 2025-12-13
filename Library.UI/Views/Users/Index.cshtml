@@ -102,3 +102,16 @@
         });
     </script>
 }
+
+@if (TempData["SweetError"] != null)
+{
+    <script>
+        Swal.fire({
+            icon: 'warning', // Uyarı olduğu için sarı ünlem
+            title: 'İşlem Engellendi',
+            html: '@Html.Raw(TempData["SweetError"])', // HTML formatında mesaj (br etiketi için)
+            confirmButtonColor: '#d33',
+            confirmButtonText: 'Tamam, Anlaşıldı'
+        });
+    </script>
+}

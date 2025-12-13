@@ -1,0 +1,121 @@
+﻿@model List<Library.UI.Models.RequestListViewModel>
+
+@{
+    ViewData["Title"] = "İstek Yönetimi (Admin)";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <h2>📢 Gelen İstek Kutusu</h2>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">@TempData["Success"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+
+    <div class="table-responsive mt-3">
+        <table class="table table-bordered table-striped">
+            <thead class="table-dark">
+                <tr>
+                    <th style="width: 15%;">İstek Yapan Kullanıcı</th>
+                    <th style="width: 25%;">Kitap Adı</th>
+                    <th style="width: 30%;">Mesaj (Önizleme)</th>
+                    <th style="width: 10%;">Tarih</th>
+                    <th style="width: 10%;">Durum</th>
+                    <th style="width: 10%;">İşlem</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td class="fw-bold">@item.UserName</td>
+
+                        <td class="fw-bold">@item.Title</td>
+
+                        <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="@item.Message">
+                            @item.Message
+                        </td>
+
+                        <td>@item.CreatedAt.ToShortDateString()</td>
+                        <td>
+                            @if (item.Status == 0)
+                            {
+                                <span class="badge bg-warning text-dark">Beklemede</span>
+                            }
+                            else if (item.Status == 1)
+                            {
+                                <span class="badge bg-success">Onaylandı</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger">Reddedildi</span>
+                            }
+                        </td>
+
+                        <td>
+                            <button type="button" class="btn btn-sm btn-primary"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#responseModal"
+                                    onclick="openResponseModal('@item.Id', '@item.Title', '@item.Status', '@item.AdminResponse')">
+                                Yanıtla / Güncelle
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="responseModal" tabindex="-1" aria-labelledby="modalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="UpdateStatus" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalLabel">İsteği Yanıtla</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="modalRequestId" name="Id" />
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Kitap Adı:</label>
+                        <span id="modalBookTitle" class="text-primary"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Durum</label>
+                        <select class="form-select" name="Status" id="modalStatus">
+                            <option value="0">Beklemede</option>
+                            <option value="1">Onaylandı</option>
+                            <option value="2">Reddedildi</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Admin Yanıtı</label>
+                        <textarea class="form-control" name="AdminResponse" id="modalAdminResponse" rows="3" placeholder="Kullanıcıya notunuzu yazın..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openResponseModal(id, title, status, response) {
+        document.getElementById('modalRequestId').value = id;
+        document.getElementById('modalBookTitle').innerText = title;
+        document.getElementById('modalStatus').value = status;
+        document.getElementById('modalAdminResponse').value = response || "";
+    }
+</script>

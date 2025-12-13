@@ -1,0 +1,40 @@
+﻿@model Library.UI.Models.CreateRequestViewModel
+
+<div class="container mt-5" style="max-width: 600px;">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Yeni Kitap İsteği</h4>
+        </div>
+        <div class="card-body">
+
+            <form asp-action="Create" method="post">
+
+              
+
+                <div class="mb-3">
+                    <label class="form-label">Kitap Adı</label>
+                    <input asp-for="Title" class="form-control" placeholder="Örn: Sefiller" required />
+                    <span asp-validation-for="Title" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Mesajınız / Notunuz</label>
+                    <textarea asp-for="Message" class="form-control" rows="4" placeholder="Kitabın belirli bir yayınevi veya baskısı hakkında not..." required></textarea>
+                    <span asp-validation-for="Message" class="text-danger"></span>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-success">Gönder</button>
+                    <a asp-action="MyRequests" class="btn btn-secondary">İptal</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        // JQuery validasyon betiklerinin yüklenmesi için gerekli
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

@@ -1,0 +1,73 @@
+﻿@model List<Library.UI.Models.RequestListViewModel>
+
+@{
+    ViewData["Title"] = "İsteklerim";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>📚 Kitap İsteklerim</h2>
+        <a asp-action="Create" class="btn btn-primary">+ Yeni İstek Oluştur</a>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">@TempData["Success"]</div>
+    }
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Kitap Adı</th>
+                        <th>Mesajınız</th>
+                        <th>Tarih</th>
+                        <th>Durum</th>
+                        <th>Admin Yanıtı</th>
+                        @* Kaldırılan İşlemler Sütunu: <th>İşlemler</th> *@
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td class="fw-bold">@item.Title</td>
+                            <td>@item.Message</td>
+                            <td>@item.CreatedAt.ToString("dd.MM.yyyy HH:mm")</td>
+                            <td>
+                                @if (item.Status == 0)
+                                {
+                                    <span class="badge bg-warning text-dark">Beklemede</span>
+                                }
+                                else if (item.Status == 1)
+                                {
+                                    <span class="badge bg-success">Çözüldü</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">Reddedildi</span>
+                                }
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(item.AdminResponse))
+                                {
+                                    <span class="text-info">@item.AdminResponse</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            @* İşlemler Sütunu ve tüm Düzenle/Edit butonları kaldırıldı. *@
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            @if (Model.Count == 0)
+            {
+                <div class="text-center p-3 text-muted">Henüz bir isteğiniz bulunmuyor.</div>
+            }
+        </div>
+    </div>
+</div>

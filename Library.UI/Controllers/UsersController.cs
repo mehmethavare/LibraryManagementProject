@@ -203,11 +203,49 @@ namespace Library.UI.Controllers
             var client = GetClientWithToken();
             if (client == null) return RedirectToAction("Index", "Login");
 
+            // --- GÜVENLİK KONTROLÜ BAŞLANGICI ---
+
+            // 1. Silinecek kullanıcının bilgilerini çek (Rolünü öğrenmek için)
+            var userResponse = await client.GetAsync($"Users/{id}");
+            if (userResponse.IsSuccessStatusCode)
+            {
+                var jsonString = await userResponse.Content.ReadAsStringAsync();
+                var userToDelete = JsonSerializer.Deserialize<UserUpdateViewModel>(jsonString,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                // 2. Eğer silinecek kişi "Admin" ise kontrol başlat
+                if (userToDelete != null && userToDelete.Role == "Admin")
+                {
+                    // 3. Sistemdeki toplam admin sayısını bul
+                    var listResp = await client.GetAsync("Users");
+                    if (listResp.IsSuccessStatusCode)
+                    {
+                        var listJson = await listResp.Content.ReadAsStringAsync();
+                        var allUsers = JsonSerializer.Deserialize<List<UserListViewModel>>(listJson,
+                            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                        var adminCount = allUsers?.Count(x => x.Role == "Admin") ?? 0;
+
+                        // 4. Eğer 1 tane (veya daha az) Admin varsa silmeyi engelle
+                        if (adminCount <= 1)
+                        {
+                            // Uyarı mesajını "SweetError" anahtarıyla taşıyoruz
+                            TempData["SweetError"] = "Sistemde en az 1 tane Yönetici (Admin) kalmalıdır! <br> Bu kullanıcıyı silemezsiniz.";
+
+                            // Silme işlemini yapmadan listeye geri dön
+                            return RedirectToAction("Index");
+                        }
+                    }
+                }
+            }
+            // --- GÜVENLİK KONTROLÜ BİTİŞİ ---
+
+            // Engel yoksa silme işlemini yap
             var response = await client.DeleteAsync($"Users/{id}");
 
             if (response.IsSuccessStatusCode)
             {
-                TempData["Success"] = "Kullanıcı silindi.";
+                TempData["Success"] = "Kullanıcı başarıyla silindi.";
             }
             else
             {

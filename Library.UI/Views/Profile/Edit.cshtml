@@ -8,6 +8,8 @@
 
 <div class="container mt-5" style="max-width: 700px;">
     <div class="card shadow border-0">
+
+        @* BAŞLIK KISMI: Modeldeki Ad, Soyad ve Rol ile dinamik başlık *@
         <div class="card-header bg-primary text-white text-center py-4">
             <i class="fa-solid fa-user-pen fa-4x mb-2"></i>
             <h3 class="mb-0">@Model.Name @Model.Surname</h3>
@@ -21,6 +23,37 @@
                 <input type="hidden" asp-for="Id" />
                 <input type="hidden" asp-for="Role" />
 
+                @* ========================================================== *@
+                @* KRİTİK ALAN: PROFİL GÖRSELİ URL GİRİŞİ VE ÖNİZLEME *@
+                @* ========================================================== *@
+
+                <div class="text-center mb-4">
+                    <h6>Mevcut / Yeni Profil Görseli</h6>
+                    <div class="d-inline-block position-relative">
+                        @* Önizleme Görseli - ID'si JS ile güncellenecek *@
+                        <img src="@Model.ProfileImageUrl"
+                             id="profile-preview"
+                             class="rounded-circle border border-dark border-3"
+                             style="width: 100px; height: 100px; object-fit: cover;"
+                             onerror="this.onerror=null; this.src='https://via.placeholder.com/100/CCCCCC/808080?text=USER';" />
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label asp-for="ProfileImageUrl" class="form-label fw-bold text-secondary">Profil Görseli (URL Adresi)</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light"><i class="fa-solid fa-link"></i></span>
+                        <input asp-for="ProfileImageUrl"
+                               class="form-control"
+                               placeholder="Görsel URL'si yapıştırın (https://...)"
+                               oninput="document.getElementById('profile-preview').src = this.value;" />
+                    </div>
+                    <span asp-validation-for="ProfileImageUrl" class="text-danger small"></span>
+                </div>
+
+                <hr class="mb-4" />
+
+                @* Diğer Alanlar (Orijinal Koddan Alınmıştır) *@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label asp-for="Name" class="form-label fw-bold text-secondary">Ad</label>
@@ -45,7 +78,8 @@
                     <label asp-for="Email" class="form-label fw-bold text-secondary">E-Posta Adresi</label>
                     <div class="input-group">
                         <span class="input-group-text bg-light"><i class="fa-solid fa-envelope"></i></span>
-                        <input asp-for="Email" class="form-control" placeholder="ornek@email.com" />
+                        @* Email alanı kritik olduğu için sadece okunabilir (readonly) yapılabilir *@
+                        <input asp-for="Email" class="form-control" placeholder="ornek@email.com" readonly />
                     </div>
                     <span asp-validation-for="Email" class="text-danger small"></span>
                 </div>
@@ -56,8 +90,9 @@
                         <span class="input-group-text bg-light"><i class="fa-solid fa-phone"></i></span>
                         <input asp-for="PhoneNumber" class="form-control" placeholder="5XX XXX XX XX" />
                     </div>
+                    <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
                 </div>
-
+                @* Son Düğmeler *@
                 <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                     <a asp-action="Index" class="btn btn-secondary me-md-2">İptal</a>
                     <button type="submit" class="btn btn-success px-4">
@@ -92,4 +127,10 @@
             confirmButtonColor: '#d33'
         });
     </script>
+}
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }

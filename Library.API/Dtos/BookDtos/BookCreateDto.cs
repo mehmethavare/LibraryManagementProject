@@ -8,6 +8,7 @@
         public string? CategoryName { get; set; }
         public int? PublishYear { get; set; }
         public string? CoverImageUrl { get; set; }
+        public string? Location { get; set; }
 
     }
 }

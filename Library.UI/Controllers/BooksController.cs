@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+// using static System.Runtime.InteropServices.JavaScript.JSType; // Bu using gereksiz, kaldırıldı.
 
 namespace Library.UI.Controllers
 {
@@ -48,26 +48,72 @@ namespace Library.UI.Controllers
             return GetClient();
         }
 
+        // BooksController.cs dosyasındaki Index metodu:
+        // BooksController.cs dosyasındaki Index metodu:
+
         // GET: Index
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string? category) // Filtreleme parametresini kabul eder
         {
             var client = GetClient();
+            var model = new BookIndexViewModel();
+            var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+            // 1. ADIM: Kategori Listesini API'den Çek (Değişiklik yok)
             try
             {
-                var res = await client.GetAsync("Books");
+                // API Endpoint: /api/Books/categories (Görselde görüldüğü gibi)
+                var categoryRes = await client.GetAsync("Books/categories");
+                if (categoryRes.IsSuccessStatusCode)
+                {
+                    var categoryJson = await categoryRes.Content.ReadAsStringAsync();
+                    model.Categories = JsonSerializer.Deserialize<List<CategoryViewModel>>(categoryJson, jsonOptions)
+                        ?? new List<CategoryViewModel>();
+                }
+            }
+            catch { /* Hata olsa bile devam eder */ }
+
+            // 2. ADIM: Kitap Listesini Çek (KRİTİK GÜNCELLEME BURADA)
+            try
+            {
+                string requestUrl;
+
+                // Filtreleme yapılıp yapılmadığını kontrol et
+                if (!string.IsNullOrEmpty(category) && category != "Tümü")
+                {
+                    // KRİTİK DEĞİŞİKLİK: API'nin beklediği tam endpoint'i kullanıyoruz.
+                    // Endpoint: /api/Books/by-category/available?category=roman
+                    requestUrl = $"Books/by-category/available?category={Uri.EscapeDataString(category)}";
+                    model.SelectedCategory = category;
+                }
+                else
+                {
+                    // Tümü seçiliyse, müsait olan tüm kitapları listelemek için özel endpoint'i kullanıyoruz.
+                    // Endpoint: /api/Books/available
+                    requestUrl = "Books/available";
+                    model.SelectedCategory = "Tümü";
+                }
+
+                var res = await client.GetAsync(requestUrl);
+
                 if (res.IsSuccessStatusCode)
                 {
                     var json = await res.Content.ReadAsStringAsync();
-                    var list = JsonSerializer.Deserialize<List<BookListViewModel>>(json,
-                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                    return View(list ?? new List<BookListViewModel>());
+                    model.Books = JsonSerializer.Deserialize<List<BookListViewModel>>(json, jsonOptions)
+                        ?? new List<BookListViewModel>();
+                }
+                else
+                {
+                    // Hata durumunda (örneğin 401 Unauthorized), boş liste döndür.
+                    model.Books = new List<BookListViewModel>();
                 }
             }
-            catch { /* Loglama yapılabilir */ }
+            catch
+            {
+                model.Books = new List<BookListViewModel>();
+            }
 
-            return View(new List<BookListViewModel>());
+            return View(model);
         }
-
         // GET: Details
         public async Task<IActionResult> Details(int id)
         {
@@ -85,7 +131,6 @@ namespace Library.UI.Controllers
             if (bookData == null) return NotFound();
 
             // 2. ADIM: O Kitaba Ait Yorumları Çek
-            // Düzeltilen endpoint: BookReviews/book/{id}
             var reviewsResponse = await client.GetAsync($"BookReviews/book/{id}");
 
             List<BookReviewViewModel> reviewsList = new List<BookReviewViewModel>();
@@ -140,14 +185,12 @@ namespace Library.UI.Controllers
                 Comment = model.NewComment
             };
 
-            // DÜZELTME BURADA: "Reviews" -> "BookReviews"
             var response = await client.PostAsJsonAsync("BookReviews", reviewDto);
 
             if (response.IsSuccessStatusCode)
                 TempData["Success"] = "Yorumunuz eklendi.";
             else
             {
-                // Hata mesajını API'den okuyalım (Örn: "Bu kitabı hiç ödünç almadınız")
                 var msg = await response.Content.ReadAsStringAsync();
                 TempData["Error"] = "Hata: " + msg;
             }
@@ -163,57 +206,47 @@ namespace Library.UI.Controllers
             return View(new BookCreateViewModel());
         }
 
-		[HttpPost]
-		public async Task<IActionResult> Create(BookCreateViewModel model)
-		{
-			if (HttpContext.Session.GetString("role") != "admin") return RedirectToAction("Index", "Login");
+        [HttpPost]
+        public async Task<IActionResult> Create(BookCreateViewModel model)
+        {
+            if (HttpContext.Session.GetString("role") != "admin") return RedirectToAction("Index", "Login");
 
-			// ModelState.IsValid kontrolü API'ye veri göndermeden önce çalışır (View Model'deki [Required] kontrolü).
-			if (!ModelState.IsValid)
-				return View(model);
+            if (!ModelState.IsValid)
+                return View(model);
 
-			var client = GetClientWithStrictToken();
-			if (client == null) return RedirectToAction("Index", "Login");
+            var client = GetClientWithStrictToken();
+            if (client == null) return RedirectToAction("Index", "Login");
 
-			// 1. KRİTİK DÜZELTME: Veri Eşleştirme (Mapping)
-			// View Model'deki Türkçe alan adlarını API'nin beklediği İngilizce/standart alan adlarına çeviriyoruz.
-			var apiModel = new
-			{
-				Title = model.KitapAdi,
-				Authorname = model.YazarAdi,
-				CategoryName = model.Kategori,
-				PublishYear = model.YayinYili,
+            var apiModel = new
+            {
+                Title = model.KitapAdi,
+                Authorname = model.YazarAdi,
+                CategoryName = model.Kategori,
+                PublishYear = model.YayinYili,
                 PublisherName = model.YayinciAdi,
-                // Eğer View Model'inizde CoverImageUrl varsa, onu da buraya eklemelisiniz.
             };
 
-			// 2. API'ye POST isteği gönder
-			var response = await client.PostAsJsonAsync("Books", apiModel); // 👈 Yeni API Modelini gönderiyoruz.
+            var response = await client.PostAsJsonAsync("Books", apiModel);
 
-			if (response.IsSuccessStatusCode)
-			{
-				TempData["SuccessMessage"] = "✅ Yeni kitap başarıyla eklendi.";
-				return RedirectToAction(nameof(Index));
-			}
-			else
-			{
-				// 3. KRİTİK DÜZELTME: Detaylı Hata Yönetimi
-				// API'den gelen hata detayını okuyup kullanıcıya gösteriyoruz.
-				var errorContent = await response.Content.ReadAsStringAsync();
+            if (response.IsSuccessStatusCode)
+            {
+                TempData["SuccessMessage"] = "✅ Yeni kitap başarıyla eklendi.";
+                return RedirectToAction(nameof(Index));
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                ModelState.AddModelError("", $"Kayıt başarısız. Durum Kodu: {(int)response.StatusCode}. API Mesajı: {errorContent}");
+                return View(model);
+            }
+        }
 
-				// Bu, API'deki bir zorunlu alanın eksik olması, veri tipi hatası vb. olabilir.
-				ModelState.AddModelError("", $"Kayıt başarısız. Durum Kodu: {(int)response.StatusCode}. API Mesajı: {errorContent}");
-
-				return View(model);
-			}
-		}
-
-		public async Task<IActionResult> Edit(int id)
+        public async Task<IActionResult> Edit(int id)
         {
             if (HttpContext.Session.GetString("role") != "admin") return RedirectToAction("Index", "Login");
 
             var client = GetClientWithStrictToken();
-            if (client == null) return RedirectToAction("Index", "Login"); // NULL KONTROLÜ EKLENDİ
+            if (client == null) return RedirectToAction("Index", "Login");
 
             var response = await client.GetAsync($"Books/{id}");
 
@@ -233,17 +266,21 @@ namespace Library.UI.Controllers
             if (!ModelState.IsValid) return View(model);
 
             var client = GetClientWithStrictToken();
-            if (client == null) return RedirectToAction("Index", "Login"); // NULL KONTROLÜ EKLENDİ
+            if (client == null) return RedirectToAction("Index", "Login");
 
             var response = await client.PutAsJsonAsync($"Books/{model.Id}", model);
 
             if (response.IsSuccessStatusCode)
             {
-                TempData["Success"] = "Güncellendi.";
-                return RedirectToAction("Edit", new { id = model.Id });
+                // ******* KRİTİK DÜZELTME BURADA *******
+                // Başarılı güncelleme sonrası Kitap Listesi (Index) sayfasına yönlendir
+                TempData["Success"] = "Kitap başarıyla güncellendi.";
+                return RedirectToAction(nameof(Index));
             }
 
-            TempData["Error"] = "Güncelleme başarısız.";
+            // Hata durumunda hata mesajını al ve aynı View'ı geri döndür
+            var errorContent = await response.Content.ReadAsStringAsync();
+            TempData["Error"] = $"Güncelleme başarısız. Detay: {response.StatusCode} - {errorContent}";
             return View(model);
         }
 
@@ -253,7 +290,7 @@ namespace Library.UI.Controllers
             if (HttpContext.Session.GetString("role") != "admin") return RedirectToAction("Index", "Login");
 
             var client = GetClientWithStrictToken();
-            if (client == null) return RedirectToAction("Index", "Login"); // NULL KONTROLÜ EKLENDİ
+            if (client == null) return RedirectToAction("Index", "Login");
 
             await client.DeleteAsync($"Books/{id}");
 

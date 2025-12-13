@@ -2,8 +2,14 @@
 @inject IHttpContextAccessor HttpContextAccessor
 
 @{
-    var userRole = HttpContextAccessor.HttpContext?.Session?.GetString("role");
-    var userId = HttpContextAccessor.HttpContext?.Session?.GetInt32("userId");
+    var httpContext = HttpContextAccessor.HttpContext;
+    var userRole = httpContext?.Session?.GetString("role");
+    var userId = httpContext?.Session?.GetInt32("userId");
+    
+    // KRİTİK EKLEME: Session'dan fotoğraf URL'sini ve kullanıcı adını çekme
+    var profileImageUrl = httpContext?.Session?.GetString("profileImageUrl");
+    var userName = httpContext?.Session?.GetString("username");
+    var displayName = userName?.Split('@')[0].ToUpperInvariant() ?? "Kullanıcı";
 }
 
 <!DOCTYPE html>
@@ -30,9 +36,7 @@
 
         #sidebar-wrapper {
             min-height: 100vh;
-            /* 1. İSTEK: Genişlik arttırıldı (250px -> 300px) */
             width: 300px;
-            /* 2. İSTEK: Önceki koyu renk geri getirildi */
             background-color: #2c3e50;
             color: #fff;
             display: flex;
@@ -58,7 +62,6 @@
 
         .list-group-item {
             background-color: transparent;
-            /* Yazı rengi açık gri yapıldı */
             color: #bdc3c7;
             border: none;
             padding: 1.2rem 1.5rem;
@@ -72,8 +75,6 @@
             .list-group-item i {
                 width: 35px;
                 font-size: 1.3rem;
-                /* İkonların kendi orijinal renklerini koruması için class'a dokunmuyoruz,
-                       ancak hoverda beyaz olmaları için aşağıyı ekliyoruz */
             }
 
             .list-group-item:hover {
@@ -83,7 +84,6 @@
                 padding-left: 2rem;
             }
 
-                /* Hover olunca ikonlar da beyazlaşsın */
                 .list-group-item:hover i {
                     color: #fff !important;
                 }
@@ -94,6 +94,40 @@
             border-top: 1px solid rgba(255, 255, 255, 0.1);
             padding-top: 10px;
             padding-bottom: 20px;
+        }
+        
+        /* YENİ EKLENEN STİL: Kullanıcı Fotoğraf ve İsim Kutusu (Menü üstü) */
+        .user-photo-box {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            margin: 0 0 10px 0; /* Menü elemanlarından ayır */
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .user-photo-box img, .user-photo-box i.placeholder-icon {
+            width: 30px; /* Hesabım menüsü için küçük boyut */
+            height: 30px;
+            object-fit: cover;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        
+        .user-photo-box i.placeholder-icon {
+            font-size: 1.5rem;
+            line-height: 30px;
+            text-align: center;
+            background-color: #34495e;
+            color: #ecf0f1;
+        }
+        
+        /* HESABIM MENÜSÜ İÇİN ÖZEL FOTOĞRAF STİLİ */
+        .menu-photo {
+            width: 25px;
+            height: 25px;
+            object-fit: cover;
+            border-radius: 50%;
+            margin-right: 10px;
         }
 
         .text-logout {
@@ -135,7 +169,9 @@
                     <a asp-controller="BookReviews" asp-action="Index" class="list-group-item list-group-item-action">
                         <i class="fa-solid fa-star text-warning"></i> Değerlendirmeler
                     </a>
-
+                    <a asp-controller="UserRequests" asp-action="Index" class="list-group-item list-group-item-action">
+                        <i class="fa-solid fa-inbox text-danger"></i> İstek Kutusu
+                    </a>
                     <a asp-controller="Users" asp-action="Index" class="list-group-item list-group-item-action">
                         <i class="fa-solid fa-users text-primary"></i> Kullanıcı Yönetimi
                     </a>
@@ -150,20 +186,44 @@
                     <a asp-controller="BookReviews" asp-action="Index" class="list-group-item list-group-item-action">
                         <i class="fa-solid fa-star text-warning"></i> Değerlendirmelerim
                     </a>
+                    <a asp-controller="UserRequests" asp-action="MyRequests" class="list-group-item list-group-item-action">
+                        <i class="fa-solid fa-paper-plane text-light"></i> İsteklerim
+                    </a>
                 }
             </div>
 
             <div class="bottom-menu">
-                @if (userRole == "user")
+                @if (!string.IsNullOrEmpty(userRole))
                 {
-                    <a asp-controller="Profile" asp-action="Index" class="list-group-item list-group-item-action">
-                        <i class="fa-solid fa-user-circle text-light"></i> Hesabım
+                  
+
+                    @if (userRole == "user")
+                    {
+                        @* KRİTİK DÜZELTME: HESABIM MENÜSÜ İÇİN FOTOĞRAF *@
+                        <a asp-controller="Profile" asp-action="Index" class="list-group-item list-group-item-action">
+                            @if (!string.IsNullOrEmpty(profileImageUrl))
+                            {
+                                <img src="@profileImageUrl" class="menu-photo" 
+                                     onerror="this.onerror=null; this.src='https://via.placeholder.com/25/34495e/ecf0f1?text=P';" />
+                            }
+                            else
+                            {
+                                <i class="fa-solid fa-user-circle text-light"></i>
+                            }
+                            Hesabım
+                        </a>
+                    }
+
+                    <a asp-controller="Login" asp-action="Logout" class="list-group-item list-group-item-action text-logout">
+                        <i class="fa-solid fa-right-from-bracket"></i> Çıkış Yap
                     </a>
                 }
-
-                <a asp-controller="Login" asp-action="Logout" class="list-group-item list-group-item-action text-logout">
-                    <i class="fa-solid fa-right-from-bracket"></i> Çıkış Yap
-                </a>
+                else
+                {
+                    <a asp-controller="Login" asp-action="Index" class="list-group-item list-group-item-action">
+                        <i class="fa-solid fa-sign-in-alt"></i> Giriş Yap
+                    </a>
+                }
             </div>
 
         </div>

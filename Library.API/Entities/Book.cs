@@ -10,6 +10,7 @@
         public string? CategoryName { get; set; }
         public int? PublishYear { get; set; }
         public string? CoverImageUrl { get; set; }
+        public string? Location { get; set; }
         public BookStatus Status { get; set; } = BookStatus.Available;
         public DateTime? ReturnedAt { get; set; }
      

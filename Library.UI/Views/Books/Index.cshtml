@@ -1,11 +1,15 @@
-﻿@model IEnumerable<Library.UI.Models.BookListViewModel>
+﻿@using System.Linq
+@model Library.UI.Models.BookIndexViewModel
 
 @{
     ViewData["Title"] = "Kitaplar";
+    // Kullanıcı rolünü session'dan alıyoruz
     var userRole = Context.Session.GetString("role");
 }
 
 <div class="container mt-4">
+
+    @* --- ÜST BAŞLIK VE YENİ KİTAP BUTONU (ADMİN) --- *@
     <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
         <h2 class="fw-bold text-dark">
             <i class="fa-solid fa-layer-group me-2"></i>Kitap Arşivi
@@ -19,36 +23,80 @@
         }
     </div>
 
-    @if (!Model.Any())
+    @* --- FİLTRELEME ALANI --- *@
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <form asp-action="Index" method="get">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-filter text-secondary"></i></span>
+                    <select name="category" class="form-select border-start-0 ps-0" onchange="this.form.submit()" style="cursor:pointer;">
+                        <option value="Tümü" selected="@(Model.SelectedCategory == null || Model.SelectedCategory == "Tümü")">
+                            Tüm Kategoriler
+                        </option>
+                        @foreach (var cat in Model.Categories)
+                        {
+                            <option value="@cat.CategoryName" selected="@(Model.SelectedCategory == cat.CategoryName)">
+                                @cat.CategoryName
+                            </option>
+                        }
+                    </select>
+                </div>
+            </form>
+        </div>
+
+        <div class="col-md-8 d-flex align-items-center justify-content-end">
+            @if (!string.IsNullOrEmpty(Model.SelectedCategory) && Model.SelectedCategory != "Tümü")
+            {
+                <span class="badge bg-info text-dark me-2">Filtre: @Model.SelectedCategory</span>
+                <a asp-action="Index" class="btn btn-sm btn-outline-secondary">Filtreyi Temizle</a>
+            }
+        </div>
+    </div>
+
+    @* --- KİTAP LİSTESİ --- *@
+    @if (Model.Books == null || Model.Books.Count == 0)
     {
         <div class="alert alert-light text-center p-5 border shadow-sm">
             <i class="fa-solid fa-box-open fa-3x text-muted mb-3"></i>
-            <h4 class="text-muted">Kütüphane şu an boş.</h4>
-            <p class="mb-0">Sisteme kitap eklendiğinde burada görünecektir.</p>
+            @if (Model.SelectedCategory == null || Model.SelectedCategory == "Tümü")
+            {
+                <h4 class="text-muted">Kütüphane şu an boş.</h4>
+                <p class="mb-0">Sisteme kitap eklendiğinde burada görünecektir.</p>
+            }
+            else
+            {
+                <h4 class="text-muted">"@Model.SelectedCategory" kategorisine ait kitap bulunamadı.</h4>
+                <p class="mb-0">Filtreyi temizleyerek diğer kitapları görebilirsiniz.</p>
+            }
         </div>
     }
     else
     {
         <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
-            @foreach (var book in Model)
+            @foreach (var book in Model.Books)
             {
                 <div class="col">
                     <div class="card h-100 border-0 shadow-sm hover-up">
-                        <div class="position-relative bg-light text-center overflow-hidden rounded-top" style="height: 280px;">
+
+                        @* --- GÖRSEL ALANI (GÜNCELLENDİ) --- *@
+                        @* Yükseklik 300px yapıldı, resim contain moduna alındı *@
+                        <div class="position-relative bg-light text-center overflow-hidden rounded-top" style="height: 300px;">
                             @if (!string.IsNullOrEmpty(book.CoverImageUrl))
                             {
-                                <img src="@book.CoverImageUrl" class="card-img-top h-100 w-100" style="object-fit: cover;"
-                                     alt="@book.Title" onerror="this.onerror=null;this.src='/images/placeholder.png';" />
+                                <img src="@book.CoverImageUrl"
+                                     class="card-img-top h-100 w-100 p-3"
+                                     style="object-fit: contain; transition: transform 0.3s ease;"
+                                     alt="@book.Title"
+                                     onerror="this.onerror=null;this.src='/images/placeholder.png';" />
                             }
                             else
                             {
-                                <div class="d-flex align-items-center justify-content-center h-100 text-secondary">
+                                <div class="d-flex align-items-center justify-content-center h-100 text-secondary bg-secondary bg-opacity-10">
                                     <i class="fa-solid fa-book fa-4x opacity-25"></i>
                                 </div>
                             }
 
-
-
+                            @* Durum Rozeti (Müsait / Ödünç Alındı) *@
                             <div class="position-absolute bottom-0 start-0 w-100 p-2 text-start" style="background: linear-gradient(to top, rgba(0,0,0,0.6), transparent);">
                                 @if (book.IsAvailable)
                                 {
@@ -63,62 +111,54 @@
                                     </span>
                                 }
                             </div>
-                            @* Hemen Üste Çıkan div'in hemen altına ekleyin *@
+
+                            @* HIZLI ÖDÜNÇ ALMA BUTONU (Sadece User ve Müsait Kitaplar için) *@
                             @if (userRole != "admin" && book.IsAvailable)
                             {
-                                @* 🚨 HIZLI EKLE BUTONU (Sadece User ve Müsait Kitaplar için) *@
                                 <div class="position-absolute top-0 end-0 m-2">
                                     <form asp-controller="BorrowRecords" asp-action="Create" method="post" style="display:inline;">
                                         <input type="hidden" name="bookId" value="@book.Id" />
-                                        <button type="submit" class="btn btn-success btn-sm rounded-circle shadow" style="width: 35px; height: 35px; padding: 0;">
-                                            <i class="fa-solid fa-plus"></i>
+                                        <button type="submit" class="btn btn-success btn-sm rounded-circle shadow"
+                                                style="width: 40px; height: 40px; padding: 0;" title="Hemen Ödünç Al">
+                                            <i class="fa-solid fa-plus fa-lg"></i>
                                         </button>
                                     </form>
                                 </div>
                             }
                         </div>
 
+                        @* --- KART GÖVDESİ --- *@
                         <div class="card-body d-flex flex-column pt-3">
-
                             <h6 class="card-title fw-bold text-dark text-truncate" title="@book.Title">
                                 @book.Title
                             </h6>
                             <p class="card-text text-muted small mb-3">
                                 <i class="fa-solid fa-pen-nib me-1"></i> @(string.IsNullOrEmpty(book.AuthorName) ? "Bilinmiyor" : book.AuthorName)
                             </p>
-                            <div class="mt-auto">
 
-    @* ========================================================== *@
-    @* ROL KONTROLÜ VE BUTONLAR *@
-    @* ========================================================== *@
-    
-    @if (userRole == "admin")
-    {
-        @* ADMIN İŞLEMLERİ: Düzenle ve Sil *@
-        <div class="d-flex justify-content-between">
-            <a asp-action="Edit" asp-route-id="@book.Id" class="btn btn-warning btn-sm flex-grow-1 me-1">
-                <i class="fa-solid fa-pen-to-square"></i> Düzenle
-            </a>
-            
-            @* Silme Formu *@
-            <form asp-action="Delete" asp-route-id="@book.Id" method="post" style="display:inline;" onsubmit="return confirm('Bu kitabı kalıcı olarak silmek istediğinizden emin misiniz?');">
-                <button type="submit" class="btn btn-danger btn-sm">
-                    <i class="fa-solid fa-trash-can"></i> Sil
-                </button>
-            </form>
-        </div>
-    }
-    else
-    {
-       
-     
-        @* User İncele butonu *@
-        <a asp-action="Details" asp-route-id="@book.Id" class="btn btn-outline-dark btn-sm w-100">
-            İncele
-        </a>
-    }
-</div>
-                          
+                            <div class="mt-auto">
+                                @* ROL KONTROLÜ VE BUTONLAR *@
+                                @if (userRole == "admin")
+                                {
+                                    <div class="d-flex justify-content-between gap-1">
+                                        <a asp-action="Edit" asp-route-id="@book.Id" class="btn btn-warning btn-sm flex-grow-1">
+                                            <i class="fa-solid fa-pen-to-square"></i> Düzenle
+                                        </a>
+
+                                        <form asp-action="Delete" asp-route-id="@book.Id" method="post" style="display:inline;" onsubmit="return confirm('Bu kitabı kalıcı olarak silmek istediğinizden emin misiniz?');">
+                                            <button type="submit" class="btn btn-danger btn-sm">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <a asp-action="Details" asp-route-id="@book.Id" class="btn btn-outline-dark btn-sm w-100">
+                                        İncele
+                                    </a>
+                                }
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -127,6 +167,7 @@
     }
 </div>
 
+@* --- CSS --- *@
 <style>
     .hover-up {
         transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -136,4 +177,9 @@
             transform: translateY(-5px);
             box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
         }
+
+            /* Resim üzerine gelince hafif büyüme efekti (Opsiyonel) */
+            .hover-up:hover img {
+                transform: scale(1.05);
+            }
 </style>

@@ -6,11 +6,31 @@
 
 <div class="container mt-5" style="max-width: 700px;">
     <div class="card shadow border-0">
-        <div class="card-header bg-primary text-white text-center py-4">
-            <i class="fa-solid fa-user-circle fa-4x mb-2"></i>
-            <h3 class="mb-0">@Model.Name @Model.Surname</h3>
-            <span class="badge bg-light text-primary mt-2">@Model.Role</span>
+
+        @* BAŞLIK KISMI - KRİTİK DÜZELTME BURADA: FOTOĞRAF EKLEME *@
+        <div class="card-header bg-light text-dark text-center py-4">
+
+            <div class="d-flex justify-content-center align-items-center flex-column">
+                @if (!string.IsNullOrEmpty(Model.ProfileImageUrl))
+                {
+                    @* URL varsa büyük resmi göster *@
+                    <img src="@Model.ProfileImageUrl"
+                         class="rounded-circle border border-white border-3 mb-2"
+                         style="width: 100px; height: 100px; object-fit: cover;"
+                         alt="@Model.Name Profil Resmi"
+                         onerror="this.onerror=null; this.src='https://via.placeholder.com/100/CCCCCC/808080?text=P';" />
+                }
+                else
+                {
+                    @* URL yoksa veya API'den boş geliyorsa ikon göster *@
+                    <i class="fa-solid fa-user-circle fa-4x mb-2"></i>
+                }
+
+                <h3 class="mb-0">@Model.Name @Model.Surname</h3>
+                <span class="badge bg-light text-primary mt-2">@Model.Role</span>
+            </div>
         </div>
+        @* BAŞLIK KISMI SONU *@
 
         <div class="card-body p-4">
             <h5 class="mb-4 text-muted border-bottom pb-2">Hesap Bilgileri</h5>
@@ -47,6 +67,10 @@
             <div class="d-grid gap-2">
                 <a asp-action="Edit" class="btn btn-warning btn-lg text-dark">
                     <i class="fa-solid fa-pen-to-square me-2"></i> Bilgileri Düzenle
+                </a>
+
+                <a asp-action="Logout" asp-controller="Login" class="btn btn-outline-danger">
+                    <i class="fa-solid fa-sign-out-alt me-2"></i> Çıkış Yap
                 </a>
             </div>
         </div>
