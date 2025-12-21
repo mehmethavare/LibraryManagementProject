@@ -1,17 +1,32 @@
-﻿namespace Library.UI.Models
+﻿using Newtonsoft.Json; // 🚨 Bu satırı en üste ekleyin
+
+namespace Library.UI.Models
 {
     public class UserListViewModel
     {
+        [JsonProperty("id")]
         public int Id { get; set; }
 
-        public string Name { get; set; } = string.Empty;
-        public string Surname { get; set; } = string.Empty;
+        [JsonProperty("name")]
+        public string? Name { get; set; }
 
-        public string Email { get; set; } = string.Empty;
-        public string PhoneNumber { get; set; } = string.Empty;
+        [JsonProperty("surname")]
+        public string? Surname { get; set; }
 
+        [JsonProperty("email")]
+        public string? Email { get; set; }
 
+        [JsonProperty("phoneNumber")]
+        public string? PhoneNumber { get; set; }
 
-        public string Role { get; set; } = "User";
+        [JsonProperty("role")]
+        public string? Role { get; set; }
+
+        // KRİTİK EKLENTİLER: API'den büyük/küçük harf duyarlılığı olmadan çekmek için
+        [JsonProperty("isLocked")]
+        public bool IsLocked { get; set; }
+
+        [JsonProperty("isDeleted")]
+        public bool IsDeleted { get; set; }
     }
 }

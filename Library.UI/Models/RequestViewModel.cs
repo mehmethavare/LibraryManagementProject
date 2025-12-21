@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations; // 🚨 YENİ EKLENDİ
 
 namespace Library.UI.Models
 {
@@ -20,7 +21,13 @@ namespace Library.UI.Models
     // 2. YENİ İSTEK OLUŞTURMA İÇİN (Sadece bu iki veri lazım)
     public class CreateRequestViewModel
     {
+        [Required(ErrorMessage = "Kitap Adı zorunludur.")]
+        [StringLength(100, ErrorMessage = "Kitap Adı en fazla 100 karakter olmalıdır.")]
         public string Title { get; set; }
+
+        // 🚨 GÜNCELLENDİ: Hem zorunlu kılındı hem de minimum karakter uzunluğu eklendi.
+        [Required(ErrorMessage = "Mesaj alanı zorunludur.")]
+        [MinLength(10, ErrorMessage = "Mesajınız en az 10 kelimeyi (yaklaşık 50 karakter) içermelidir.")]
         public string Message { get; set; }
     }
 
@@ -48,7 +55,7 @@ namespace Library.UI.Models
         public string Message { get; set; } = string.Empty;
 
         // ÖNEMLİ: RequestStatus artık Library.UI.Models içinde olmalı.
-        public RequestStatus Status { get; set; }
+        // public RequestStatus Status { get; set; } // Bu satırda RequestStatus'un tanımına ihtiyacınız olabilir.
 
         public string? AdminResponse { get; set; }
 

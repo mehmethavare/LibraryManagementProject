@@ -85,19 +85,40 @@ namespace Library.UI.Controllers
         [HttpGet]
         public async Task<IActionResult> Index()
         {
-            var model = await GetUserProfile();
+            var model = await GetUserProfile(); // Mevcut metodunuz ile kullanıcı verisini çeker
 
             if (model == null)
             {
-                if (string.IsNullOrEmpty(HttpContext.Session.GetString("jwt")))
-                    return RedirectToAction("Index", "Login");
-
-                TempData["Error"] = "Profil bilgileri sunucudan çekilemedi.";
-                return RedirectToAction("Index", "Books");
+                return RedirectToAction("Index", "Login");
             }
 
-            ViewBag.UserRole = HttpContext.Session.GetString("role");
-            ViewBag.UserEmail = HttpContext.Session.GetString("username");
+            // --- 🚨 KRİTİK EKLENTİ: Uyarı Durumunu Çek ---
+            var token = HttpContext.Session.GetString("jwt");
+            var client = GetClient(token);
+
+            // API'de /api/Users/me/warnings endpoint'inin olduğunu varsayıyoruz
+            var warningsResponse = await client.GetAsync("Users/me/warnings");
+
+            if (warningsResponse.IsSuccessStatusCode)
+            {
+                var warningsJson = await warningsResponse.Content.ReadAsStringAsync();
+
+              
+                try
+                {
+                    // Eğer UI projenizde DTO yoksa, bunun yerine basit bir dictionary de kullanabilirsiniz.
+                    // En iyisi, UI projenize bu veriyi temsil eden bir C# sınıfı (örneğin UserWarningsDto) eklemektir.
+                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    var warningsDto = JsonSerializer.Deserialize<object>(warningsJson, options); // object kullanmak geçici çözüm
+
+                    ViewData["UserWarnings"] = warningsDto;
+                }
+                catch (Exception ex)
+                {
+                    // Hata olursa loglayın, ancak uygulamayı durdurmayın
+                }
+            }
+            // ----------------------------------------------
 
             return View(model);
         }

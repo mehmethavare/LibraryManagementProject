@@ -20,5 +20,9 @@ namespace Library.UI.Models
         [Display(Name = "Yayıncı Adı")]
         public string? YayinciAdi { get; set; }
 
+        [Display(Name = "Raf / Konum")]
+        public string? Location { get; set; }
+        [Display(Name = "Kapak Görseli URL")]
+        public string? CoverImageUrl { get; set; }
     }
 }

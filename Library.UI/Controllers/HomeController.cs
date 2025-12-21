@@ -1,30 +1,100 @@
+ï»¿using Library.UI.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Http; // Session için gerekli
+using Microsoft.AspNetCore.Http;
+using System.Net.Http.Headers;
+using Newtonsoft.Json;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Linq;
+using System;
 
 namespace Library.UI.Controllers
 {
     public class HomeController : Controller
     {
-        // Proje açýlýnca direkt Dashboard'a yönlendir
+        private readonly HttpClient _httpClient;
+
+        public HomeController(IHttpClientFactory httpClientFactory)
+        {
+            _httpClient = httpClientFactory.CreateClient();
+            // API adresinizin (Port 7080) doÄŸru olduÄŸundan emin olun
+            _httpClient.BaseAddress = new Uri("https://localhost:7080/api/");
+        }
+
         public IActionResult Index()
         {
+            var userRole = HttpContext.Session.GetString("role");
+            if (userRole == "admin") return RedirectToAction("Index", "Admin");
             return RedirectToAction("Dashboard");
         }
 
-        // ÝÞTE EKSÝK OLAN KISIM BU:
-        public IActionResult Dashboard()
+        public async Task<IActionResult> Dashboard()
         {
-            // Kullanýcý giriþ yapmamýþsa Login sayfasýna at
+            // ... (Ã–nceki kodlar: Token alma, Rol kontrolÃ¼ vb.) ...
+            var token = HttpContext.Session.GetString("jwt");
             var role = HttpContext.Session.GetString("role");
-            if (string.IsNullOrEmpty(role))
+            var userId = HttpContext.Session.GetInt32("userId");
+
+            if (role == "admin") return RedirectToAction("Index", "Admin");
+            if (string.IsNullOrEmpty(token)) return RedirectToAction("Index", "Login");
+
+            // API Adresini alÄ±yoruz (Resimleri tamamlamak iÃ§in lazÄ±m)
+            string apiBaseUrl = "https://localhost:7080/";
+            // Not: BurayÄ± configuration'dan da Ã§ekebilirsiniz: _configuration["ApiSettings:BaseUrl"]
+
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var model = new UserDashboardViewModel();
+
+            // API Ä°STEKLERÄ° (History endpointi kullanÄ±lÄ±yor)
+            var annTask = _httpClient.GetAsync("Announcements");
+            var reqTask = _httpClient.GetAsync("Requests/me");
+            var historyTask = _httpClient.GetAsync("BorrowRecords/me/history");
+            var warningsTask = _httpClient.GetAsync("Users/me/warnings");
+
+            await Task.WhenAll(annTask, reqTask, historyTask, warningsTask);
+
+            // ... (Duyurular ve Ä°stekler kÄ±sÄ±mlarÄ± aynÄ± kalacak) ...
+            // 1. Duyurular
+            if (annTask.Result.IsSuccessStatusCode)
             {
-                return RedirectToAction("Index", "Login");
+                var json = await annTask.Result.Content.ReadAsStringAsync();
+                model.Announcements = JsonConvert.DeserializeObject<List<AnnouncementListViewModel>>(json)
+                    ?.OrderByDescending(a => a.Date).Take(3).ToList();
             }
 
-            // Rol bilgisini sayfaya gönder (Admin mi User mý?)
-            ViewBag.UserRole = role;
+            // 2. Ä°stekler
+            if (reqTask.Result.IsSuccessStatusCode)
+            {
+                var json = await reqTask.Result.Content.ReadAsStringAsync();
+                model.MyRequests = JsonConvert.DeserializeObject<List<RequestListViewModel>>(json)
+                    ?.OrderByDescending(r => r.CreatedAt).Take(3).ToList();
+            }
 
-            return View(); // Bu komut Views/Home/Dashboard.cshtml dosyasýný arar
+            // 3. AKTÄ°F Ã–DÃœNÃ‡LER
+            if (historyTask.Result.IsSuccessStatusCode)
+            {
+                var json = await historyTask.Result.Content.ReadAsStringAsync();
+                var allHistory = JsonConvert.DeserializeObject<List<BorrowRecordListViewModel>>(json);
+
+                if (allHistory != null)
+                {
+                    // Sadece filtreleme ve sÄ±ralama yapÄ±yoruz, URL'ye dokunmuyoruz.
+                    model.ActiveBorrows = allHistory
+                        .Where(b => !b.IsReturned)
+                        .OrderBy(b => b.ReturnDate)
+                        .ToList();
+                }
+            }
+
+            // ... (UyarÄ±lar ve return View kÄ±smÄ± aynÄ± kalacak) ...
+            if (warningsTask.Result.IsSuccessStatusCode)
+            {
+                var json = await warningsTask.Result.Content.ReadAsStringAsync();
+                var warningsDto = JsonConvert.DeserializeObject<dynamic>(json);
+                ViewData["UserWarnings"] = warningsDto;
+            }
+
+            return View(model);
         }
 
         public IActionResult Privacy()

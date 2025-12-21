@@ -83,9 +83,14 @@ else
 
                         @if (item.IsReturned != true)
                         {
-                            <a asp-controller="BorrowRecords" asp-action="ReturnBook" asp-route-id="@item.Id" class="btn btn-sm btn-warning text-dark">
-                                <i class="fa-solid fa-rotate-left"></i> İade Et
-                            </a>
+                            <form asp-controller="BorrowRecords" asp-action="ReturnBook" method="post" style="display:inline;">
+                                <input type="hidden" name="id" value="@item.Id" />
+                                <input type="hidden" name="dueDateStr" value="@(item.ReturnDate.HasValue? item.ReturnDate.Value.ToString("yyyy-MM-dd HH:mm:ss") : DateTime.MaxValue.ToString("yyyy-MM-dd HH:mm:ss"))" />
+
+                                <button type="submit" class="btn btn-sm btn-warning text-dark" title="Kitabı İade Al">
+                                    <i class="fa-solid fa-rotate-left"></i> İade Et
+                                </button>
+                            </form>
                         }
                     </td>
                 </tr>

@@ -1,4 +1,6 @@
-﻿namespace Library.UI.Models
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Library.UI.Models
 {
     public class BookDetailViewModel
     {
@@ -24,6 +26,8 @@
         // Yorum Ekleme Alanları
         public int NewRating { get; set; }
         public string NewComment { get; set; } = string.Empty;
+        [Display(Name = "Raf / Konum")]
+        public string? Location { get; set; }
     }
 
     public class ReviewViewModel

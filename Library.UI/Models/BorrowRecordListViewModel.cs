@@ -12,5 +12,6 @@ namespace Library.UI.Models
         public DateTime BorrowDate { get; set; }
         public DateTime? ReturnDate { get; set; }
         public bool IsReturned { get; set; }
+        public string? CoverImageUrl { get; set; }
     }
 }

@@ -2,7 +2,7 @@
 @inject IHttpContextAccessor HttpContextAccessor
 
 @{
-    ViewData["Title"] = "Borrow Records";
+    ViewData["Title"] = "Ödünç İşlemleri";
     // Kullanıcı rolünü oturumdan çekiyoruz
     var userRole = HttpContextAccessor.HttpContext?.Session?.GetString("role");
 }
@@ -12,14 +12,18 @@
 
 <div class="container mt-4">
 
-    <div class="d-flex align-items-center mb-3">
+    <div class="d-flex align-items-center justify-content-between mb-3">
         @if (userRole == "admin")
         {
-            <h2 class="text-dark"><i class="fa-solid fa-user-gear text-primary me-2"></i>Ödünç İşlemleri Paneli</h2>
+            <h2 class="text-dark fw-bold">
+                <i class="fa-solid fa-user-gear text-primary me-2"></i>Ödünç İşlemleri Paneli
+            </h2>
         }
         else
         {
-            <h2 class="text-dark"><i class="fa-solid fa-book-reader text-success me-2"></i>Ödünç Aldığım Kitaplar</h2>
+            <h2 class="text-dark fw-bold">
+                <i class="fa-solid fa-book-reader text-success me-2"></i>Ödünç Aldığım Kitaplar
+            </h2>
         }
     </div>
 
@@ -41,14 +45,6 @@
         </div>
     }
 
-    @if (TempData["Success"] != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
-            <i class="fa-solid fa-circle-check me-2"></i> @TempData["Success"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    }
-
     @if (userRole == "admin")
     {
         <partial name="_AdminBorrowList" model="Model" />
@@ -59,11 +55,65 @@
     }
     else
     {
-        <div class="alert alert-warning text-center p-4">
-            <i class="fa-solid fa-lock fa-2x mb-3"></i><br>
-            <h5>Erişim Engellendi</h5>
-            <p>Bu sayfayı görüntülemek için lütfen giriş yapınız.</p>
+        <div class="alert alert-warning text-center p-5 shadow-sm rounded">
+            <i class="fa-solid fa-lock fa-3x mb-3 text-warning"></i>
+            <h4>Erişim Engellendi</h4>
+            <p class="text-muted">Bu sayfayı görüntülemek için lütfen giriş yapınız.</p>
+            <a asp-controller="Login" asp-action="Index" class="btn btn-primary mt-2">Giriş Yap</a>
         </div>
     }
 
 </div>
+
+@section Scripts {
+    <script>
+        // 1. GEÇ İADE UYARISI (KIRMIZI ALARM)
+        // Controller'da: TempData["LateReturnAlert"]
+        var lateAlert = '@Html.Raw(TempData["LateReturnAlert"])';
+
+        if (lateAlert && lateAlert.length > 0) {
+            Swal.fire({
+                title: '⚠️ GEÇ İADE TESPİT EDİLDİ',
+                html: lateAlert,             // HTML içeriği (bold vb. için)
+                icon: 'warning',
+                iconColor: '#d33',           // İkon Rengi: Kırmızı
+                background: '#fff5f5',       // Arka Plan: Çok açık kırmızı
+                confirmButtonColor: '#d33',  // Buton Rengi: Kırmızı
+                confirmButtonText: 'Anladım, Dikkat Edeceğim',
+                backdrop: `
+                    rgba(255,0,0,0.1)
+                    left top
+                    no-repeat
+                `
+            });
+        }
+
+        // 2. BAŞARILI İŞLEM (YEŞİL POPUP)
+        // Controller'da: TempData["SuccessMessage"]
+        var successMsg = '@Html.Raw(TempData["SuccessMessage"])';
+
+        if (successMsg && successMsg.length > 0) {
+            Swal.fire({
+                icon: 'success',
+                title: 'İşlem Başarılı',
+                text: successMsg,
+                confirmButtonColor: '#198754',
+                timer: 3000, // 3 saniye sonra otomatik kapanır
+                timerProgressBar: true
+            });
+        }
+
+        // 3. HATA MESAJI (STANDART POPUP)
+        // Controller'da: TempData["ErrorMessage"]
+        var errorMsg = '@Html.Raw(TempData["ErrorMessage"])';
+
+        if (errorMsg && errorMsg.length > 0) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Hata Oluştu',
+                text: errorMsg,
+                confirmButtonColor: '#dc3545'
+            });
+        }
+    </script>
+}

@@ -5,7 +5,7 @@
     var httpContext = HttpContextAccessor.HttpContext;
     var userRole = httpContext?.Session?.GetString("role");
     var userId = httpContext?.Session?.GetInt32("userId");
-    
+
     // KRİTİK EKLEME: Session'dan fotoğraf URL'sini ve kullanıcı adını çekme
     var profileImageUrl = httpContext?.Session?.GetString("profileImageUrl");
     var userName = httpContext?.Session?.GetString("username");
@@ -22,122 +22,149 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        body {
-            overflow-x: hidden;
-            background-color: #f4f6f9;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                body {
+                        overflow-x: hidden;
+                        background-color: #f4f6f9;
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
         }
 
-        #wrapper {
-            display: flex;
-            width: 100%;
-            align-items: stretch;
+                #wrapper {
+                        display: flex;
+                        width: 100%;
+                        align-items: stretch;
+
         }
 
-        #sidebar-wrapper {
-            min-height: 100vh;
-            width: 300px;
-            background-color: #2c3e50;
-            color: #fff;
-            display: flex;
-            flex-direction: column;
-            border-right: 1px solid rgba(0,0,0,0.1);
+                #sidebar-wrapper {
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        height: 100vh;
+                        width: 300px;
+                        background-color: #2c3e50;
+                        color: #fff;
+                        display: flex;
+                        flex-direction: column;
+                        border-right: 1px solid rgba(0,0,0,0.1);
+                        overflow-y: auto;
+                        z-index: 1000;
+
         }
 
-        .sidebar-heading {
-            padding: 2.5rem 1rem;
-            text-align: center;
-            font-size: 1.4rem;
-            font-weight: 600;
-            color: #ecf0f1;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                .sidebar-heading {
+                        padding: 2.5rem 1rem;
+                        text-align: center;
+                        font-size: 1.4rem;
+                        font-weight: 600;
+                        color: #ecf0f1;
+                        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
         }
 
-            .sidebar-heading i {
-                display: block;
-                font-size: 3.5rem;
-                margin-bottom: 15px;
-                color: #ecf0f1;
-            }
+                    .sidebar-heading i {
+                            display: block;
+                            font-size: 3.5rem;
+                            margin-bottom: 15px;
+                            color: #ecf0f1;
 
-        .list-group-item {
-            background-color: transparent;
-            color: #bdc3c7;
-            border: none;
-            padding: 1.2rem 1.5rem;
-            font-size: 1.1rem;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            transition: all 0.3s;
         }
 
-            .list-group-item i {
-                width: 35px;
-                font-size: 1.3rem;
-            }
+                .list-group-item {
+                        background-color: transparent;
+                        color: #bdc3c7;
+                        border: none;
+                        padding: 1.2rem 1.5rem;
+                        font-size: 1.1rem;
+                        font-weight: 500;
+                        display: flex;
+                        align-items: center;
+                        transition: all 0.3s;
 
-            .list-group-item:hover {
-                background-color: rgba(255, 255, 255, 0.1);
-                color: #fff;
-                text-decoration: none;
-                padding-left: 2rem;
-            }
+        }
 
-                .list-group-item:hover i {
-                    color: #fff !important;
-                }
+                    .list-group-item i {
+                            width: 35px;
+                            font-size: 1.3rem;
+
+        }
+
+                    .list-group-item:hover {
+                            background-color: rgba(255, 255, 255, 0.1);
+                            color: #fff;
+                            text-decoration: none;
+                            padding-left: 2rem;
+
+        }
+
+                        .list-group-item:hover i {
+                                color: #fff !important;
+
+        }
+
 
         /* Alt kısımdaki butonlar için stil */
-        .bottom-menu {
-            margin-top: auto;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            padding-top: 10px;
-            padding-bottom: 20px;
+                .bottom-menu {
+                        margin-top: auto;
+                        border-top: 1px solid rgba(255, 255, 255, 0.1);
+                        padding-top: 10px;
+                        padding-bottom: 20px;
+
         }
-        
+
+
         /* YENİ EKLENEN STİL: Kullanıcı Fotoğraf ve İsim Kutusu (Menü üstü) */
-        .user-photo-box {
-            display: flex;
-            align-items: center;
-            padding: 10px 15px;
-            margin: 0 0 10px 0; /* Menü elemanlarından ayır */
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                .user-photo-box {
+                        display: flex;
+                        align-items: center;
+                        padding: 10px 15px;
+                        margin: 0 0 10px 0; /* Menü elemanlarından ayır */
+                        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
         }
-        
-        .user-photo-box img, .user-photo-box i.placeholder-icon {
-            width: 30px; /* Hesabım menüsü için küçük boyut */
-            height: 30px;
-            object-fit: cover;
-            border-radius: 50%;
-            margin-right: 10px;
+
+                    .user-photo-box img, .user-photo-box i.placeholder-icon {
+                            width: 30px; /* Hesabım menüsü için küçük boyut */
+                            height: 30px;
+                            object-fit: cover;
+                            border-radius: 50%;
+                            margin-right: 10px;
+
         }
-        
-        .user-photo-box i.placeholder-icon {
-            font-size: 1.5rem;
-            line-height: 30px;
-            text-align: center;
-            background-color: #34495e;
-            color: #ecf0f1;
+
+                    .user-photo-box i.placeholder-icon {
+                            font-size: 1.5rem;
+                            line-height: 30px;
+                            text-align: center;
+                            background-color: #34495e;
+                            color: #ecf0f1;
+
         }
-        
+
+
         /* HESABIM MENÜSÜ İÇİN ÖZEL FOTOĞRAF STİLİ */
-        .menu-photo {
-            width: 25px;
-            height: 25px;
-            object-fit: cover;
-            border-radius: 50%;
-            margin-right: 10px;
+                .menu-photo {
+                        width: 25px;
+                        height: 25px;
+                        object-fit: cover;
+                        border-radius: 50%;
+                        margin-right: 10px;
+
         }
 
-        .text-logout {
-            color: #e74c3c !important; /* Çıkış butonu kırmızımsı */
+                .text-logout {
+                        color: #e74c3c !important; /* Çıkış butonu kırmızımsı */
+
         }
 
-        #page-content-wrapper {
-            width: 100%;
-            padding: 20px;
+                #page-content-wrapper {
+                        width: 100%;
+                        padding: 20px;
+                        margin-left: 300px;
+
         }
+
+
     </style>
 </head>
 <body>
@@ -155,13 +182,18 @@
                 <a asp-controller="Home" asp-action="Dashboard" class="list-group-item list-group-item-action">
                     <i class="fa-solid fa-house text-warning"></i> Ana Sayfa
                 </a>
-
+                
+                    <a asp-controller="Announcements" asp-action="Index" class="list-group-item list-group-item-action">
+                        <i class="fa-solid fa-bullhorn text-light"></i> Duyurular
+                    </a>
+                
                 <a asp-controller="Books" asp-action="Index" class="list-group-item list-group-item-action">
                     <i class="fa-solid fa-book text-success"></i> Kitaplar
                 </a>
 
                 @if (userRole == "admin")
                 {
+
                     <a asp-controller="BorrowRecords" asp-action="Index" class="list-group-item list-group-item-action">
                         <i class="fa-solid fa-hand-holding-hand text-info"></i> Ödünç İşlemleri
                     </a>
@@ -179,6 +211,8 @@
 
                 @if (userRole == "user")
                 {
+
+
                     <a asp-controller="BorrowRecords" asp-action="Index" class="list-group-item list-group-item-action">
                         <i class="fa-solid fa-book-reader text-info"></i> Ödünç Alınanlar
                     </a>
@@ -195,7 +229,6 @@
             <div class="bottom-menu">
                 @if (!string.IsNullOrEmpty(userRole))
                 {
-                  
 
                     @if (userRole == "user")
                     {
@@ -203,8 +236,8 @@
                         <a asp-controller="Profile" asp-action="Index" class="list-group-item list-group-item-action">
                             @if (!string.IsNullOrEmpty(profileImageUrl))
                             {
-                                <img src="@profileImageUrl" class="menu-photo" 
-                                     onerror="this.onerror=null; this.src='https://via.placeholder.com/25/34495e/ecf0f1?text=P';" />
+                                <img src="@profileImageUrl" class="menu-photo"
+                                                        onerror="this.onerror=null; this.src='https://via.placeholder.com/25/34495e/ecf0f1?text=P';" />
                             }
                             else
                             {
@@ -230,8 +263,7 @@
         <div id="page-content-wrapper">
             <div class="container-fluid">
 
-              
-                @if (TempData["Error"] != null)
+                              @if (TempData["Error"] != null)
                 {
                     <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
                         <i class="fa-solid fa-triangle-exclamation me-2"></i> @TempData["Error"]

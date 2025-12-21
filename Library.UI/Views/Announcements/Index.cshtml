@@ -1,0 +1,109 @@
+﻿@model List<Library.UI.Models.AnnouncementListViewModel>
+@using Microsoft.AspNetCore.Http
+
+@{
+    ViewData["Title"] = "Duyuru Yönetimi";
+
+    // 🚨 KRİTİK DÜZELTME: Controller'dan hatalı formu yakala.
+    // Eğer Controller'dan ViewData["CreateModel"] ile model gelirse onu kullan, yoksa boş bir model oluştur.
+    var createModel = ViewData["CreateModel"] as Library.UI.Models.CreateAnnouncementViewModel
+                      ?? new Library.UI.Models.CreateAnnouncementViewModel();
+
+    var userRole = Context.Session.GetString("role");
+}
+
+<div class="container mt-4">
+    <h2 class="fw-bold mb-4">📢 Duyuru Yönetimi</h2>
+
+ 
+    
+
+    <div class="row">
+
+        @* === SOL SÜTUN: DUYURU LİSTESİ === *@
+        <div class="@(userRole == "admin" ? "col-lg-8" : "col-lg-12") mb-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-light fw-bold">
+                    Mevcut Duyurular (@Model.Count)
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.Any())
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var ann in Model)
+                            {
+                                <li class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="mb-1 fw-bold text-primary">@ann.Title</h6>
+                                            <p class="mb-1 small text-muted">@ann.Content</p>
+                                        </div>
+
+                                        @* 🚨 GÜNCELLENDİ: Silme Formu ve Tarih *@
+                                        <div>
+                                            <small class="text-secondary d-block text-end">@ann.Date.ToString("dd.MM.yyyy HH:mm")</small>
+
+                                            @* Sadece ADMIN ise Sil butonunu göster *@
+                                            @if (userRole == "admin")
+                                            {
+                                                <form asp-action="Delete" asp-route-id="@ann.Id" method="post"
+                                                      onsubmit="return confirm('@ann.Title' başlıklı duyuruyu silmek istediğinize emin misiniz?');"
+                                                      class="d-inline mt-1">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger float-end">
+                                                        <i class="fa-solid fa-trash"></i> Sil
+                                                    </button>
+                                                </form>
+                                            }
+                                        </div>
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p class="p-3 text-muted mb-0">Henüz hiçbir duyuru yayımlanmamıştır.</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        @* === SAĞ SÜTUN: YENİ DUYURU EKLEME FORMU (Sadece Admin görür) === *@
+        @if (userRole == "admin")
+        {
+            <div class="col-lg-4 mb-4">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-primary text-white fw-bold">
+                        Yeni Duyuru Yayımla
+                    </div>
+                    <div class="card-body">
+
+                        @* 🚨 GÜNCELLENDİ: ModelOnly yerine All kullanıldı, böylece tüm validasyon hataları tek bir yerde görünür. *@
+                
+                        <form asp-controller="Announcements" asp-action="Create" method="post">
+
+                            <div class="mb-3">
+                                <label class="form-label">Başlık</label>
+                                <input asp-for="@createModel.Title" name="Title" class="form-control" required />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">İçerik</label>
+                                <textarea asp-for="@createModel.Content" name="Content" class="form-control" rows="4" required></textarea>
+                            </div>
+
+                            <button type="submit" class="btn btn-success w-100">Yayımla</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        // Validasyon betiklerinin yüklenmesi
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

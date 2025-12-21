@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using System.Text;
 using System.Text.Json;
 using System.Net.Http.Headers;
+using System.Collections.Generic;
 
 namespace Library.UI.Controllers
 {
@@ -36,6 +37,9 @@ namespace Library.UI.Controllers
         }
 
         // LIST (INDEX)
+        // UsersController.cs - Index Metodu (Hata Düzeltildi ve Otomatik Çıkış Eklendi)
+
+        // LIST (INDEX)
         public async Task<IActionResult> Index()
         {
             if (HttpContext.Session.GetString("role") != "admin") return RedirectToAction("Index", "Login");
@@ -43,22 +47,42 @@ namespace Library.UI.Controllers
             var client = GetClientWithToken();
             if (client == null) return RedirectToAction("Index", "Login");
 
+            // 🚨 CS0103 DÜZELTME: list değişkenini burada tanımla
+            List<UserListViewModel> list = new List<UserListViewModel>();
+
             try
             {
                 var response = await client.GetAsync("Users");
+
+                // 🚨 OTOMATİK ÇIKIŞ KONTROLÜ
+                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    HttpContext.Session.Clear();
+                    TempData["Error"] = "Hesap yetkilendirmesi reddedildi. Oturumunuz sonlandırılmıştır.";
+                    return RedirectToAction("Index", "Login");
+                }
+
                 if (response.IsSuccessStatusCode)
                 {
-                    var json = await response.Content.ReadAsStringAsync();
-                    var list = JsonSerializer.Deserialize<List<UserListViewModel>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                    return View(list);
+                    var jsonData = await response.Content.ReadAsStringAsync();
+                    // Değeri burada ata
+                    list = Newtonsoft.Json.JsonConvert.DeserializeObject<List<UserListViewModel>>(jsonData)
+                           ?? new List<UserListViewModel>(); // Null gelirse boş liste ata
+                }
+                else
+                {
+                    // Başarılı (200) veya Unauthorized (401) dışındaki hatalar
+                    TempData["Error"] = $"Kullanıcı listesi çekilemedi. Hata kodu: {(int)response.StatusCode}";
                 }
             }
             catch (Exception)
             {
-                TempData["Error"] = "Sunucuya bağlanılamadı.";
+                TempData["Error"] = "Sunucuya bağlanılamadı veya veriler işlenirken hata oluştu.";
+                // 'list' zaten metodun başında boş liste olarak tanımlanmıştır.
             }
 
-            return View(new List<UserListViewModel>());
+            // Artık list değişkeni try bloğunun dışında da erişilebilir.
+            return View(list);
         }
 
         // DETAILS
@@ -290,7 +314,50 @@ namespace Library.UI.Controllers
             // ÖNEMLİ: İşlem bitince tekrar AYNI kullanıcının düzenleme sayfasına dönüyoruz
             return RedirectToAction("Edit", new { id = userId });
         }
+        // UsersController.cs - Yeni Metot Eklentisi (En alta)
 
+        // UsersController.cs - ADMİN: Kullanıcı Kilidini Kaldırma/Hesabı Açma (Düzeltildi)
+        // ---------------------------------------------------------
+        [HttpPost] // View'dan POST isteği geleceği için bu etiket kalmalı
+        public async Task<IActionResult> Unlock(int id)
+        {
+            if (HttpContext.Session.GetString("role") != "admin")
+            {
+                TempData["Error"] = "Bu işlem için yetkiniz yok.";
+                return RedirectToAction("Index");
+            }
+
+            var client = GetClientWithToken();
+            if (client == null) return RedirectToAction("Index", "Login");
+
+            try
+            {
+                // 🚨 KRİTİK DÜZELTME: API'deki [HttpPut] endpoint'ine uyum sağlama
+                var responseAPI = await client.PutAsync($"Users/{id}/unlock", null);
+
+                if (responseAPI.IsSuccessStatusCode)
+                {
+                    TempData["Success"] = "Kullanıcının kilidi başarıyla kaldırıldı ve hesap açıldı.";
+                }
+                else if (responseAPI.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    HttpContext.Session.Clear();
+                    TempData["Error"] = "Oturum yetkilendirmesi reddedildi.";
+                    return RedirectToAction("Index", "Login");
+                }
+                else
+                {
+                    var errorContent = await responseAPI.Content.ReadAsStringAsync();
+                    TempData["Error"] = $"İşlem başarısız oldu.";
+                }
+            }
+            catch (Exception)
+            {
+                TempData["Error"] = "Sunucuya bağlanılamadı veya beklenmedik bir hata oluştu.";
+            }
+
+            return RedirectToAction("Index");
+        }
     }
 
 }

@@ -100,7 +100,7 @@ namespace Library.API.Services
 
                 // Her saat başı kontrol et
                 //await Task.Delay(TimeSpan.FromHours(1), stoppingToken);    
-                await Task.Delay(TimeSpan.FromSeconds(20), stoppingToken);            //TEST İÇİN SÜREYİ KISALTTIM
+                await Task.Delay(TimeSpan.FromSeconds(59), stoppingToken);            //TEST İÇİN SÜREYİ KISALTTIM
 
             }
         }

@@ -132,8 +132,9 @@ namespace Library.API.Controllers
                 UserId = currentUserId,
                 BorrowDate = DateTime.Now,
                 //ReturnDate = DateTime.Now.AddDays(7),
-                ReturnDate = DateTime.Now.AddSeconds(30), // TEST İÇİN SÜREYİ KISALTTIM
-                IsReturned = false
+                ReturnDate = DateTime.Now.AddSeconds(59), // TEST İÇİN SÜREYİ KISALTTIN, istersen geri al
+                IsReturned = false,
+                ReturnRequestStatus = ReturnRequestStatus.None
             };
 
             book.Status = BookStatus.Unavailable;
@@ -150,12 +151,12 @@ namespace Library.API.Controllers
             });
         }
 
-        // 🔹 6) Kitap iade etme
-        //     - Admin her kaydı iade edebilir
-        //     - Normal kullanıcı sadece kendi kaydını iade edebilir
-        [HttpPut("return/{id}")]
+        // 🔹 6) Kullanıcı: Kitabı iade etmek için İADE İSTEĞİ oluşturur
+        //     - Kitap henüz iade edilmez, sadece pending olur
+        // POST: /api/BorrowRecords/{id}/return-request
+        [HttpPost("{id:int}/return-request")]
         [Authorize(Roles = "User,Admin")]
-        public async Task<IActionResult> ReturnBook(int id)
+        public async Task<IActionResult> CreateReturnRequest(int id)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdClaim))
@@ -164,38 +165,125 @@ namespace Library.API.Controllers
             if (!int.TryParse(userIdClaim, out var currentUserId))
                 return Unauthorized();
 
-            var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value;
-
             var record = await _context.BorrowRecords
-                .Include(x => x.Book)
-                .FirstOrDefaultAsync(x => x.Id == id);
+                .Include(br => br.Book)
+                .FirstOrDefaultAsync(br => br.Id == id);
 
             if (record == null)
                 return NotFound("Borrow record not found.");
 
-            // Admin değilse ve kayıt ona ait değilse iade edemesin
+            // Normal kullanıcı başkasının kaydı için istekte bulunamasın
+            var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value;
             if (currentUserRole != "Admin" && record.UserId != currentUserId)
                 return Forbid();
 
             if (record.IsReturned)
                 return BadRequest("This book is already returned.");
 
+            if (record.ReturnRequestStatus == ReturnRequestStatus.Pending)
+                return BadRequest("There is already a pending return request for this record.");
+
+            record.ReturnRequestStatus = ReturnRequestStatus.Pending;
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = "İade isteğiniz oluşturuldu. Görevli onayladıktan sonra kitap iade edilmiş olacaktır."
+            });
+        }
+
+        // 🔹 7) ADMIN: Bekleyen tüm iade isteklerini listele (UI'da 'İade İstekleri' sayfası açarsın)
+        // GET: /api/BorrowRecords/return-requests/pending
+        [HttpGet("return-requests/pending")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetPendingReturnRequests()
+        {
+            var records = await _context.BorrowRecords
+                .Include(br => br.Book)
+                .Include(br => br.User)
+                .Where(br => !br.IsReturned && br.ReturnRequestStatus == ReturnRequestStatus.Pending)
+                .OrderBy(br => br.ReturnDate)
+                .ToListAsync();
+
+            var result = _mapper.Map<List<BorrowRecordListDto>>(records);
+            return Ok(result);
+        }
+
+        // 🔹 8) ADMIN: İade isteğini ONAYLAR → kitap gerçekten iade edilir
+        // PUT: /api/BorrowRecords/{id}/approve-return
+        [HttpPut("{id:int}/approve-return")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> ApproveReturn(int id)
+        {
+            var record = await _context.BorrowRecords
+                .Include(br => br.Book)
+                .Include(br => br.User)
+                .FirstOrDefaultAsync(br => br.Id == id);
+
+            if (record == null)
+                return NotFound("Borrow record not found.");
+
+            if (record.IsReturned)
+                return BadRequest("This book has already been returned.");
+
+            if (record.ReturnRequestStatus != ReturnRequestStatus.Pending)
+                return BadRequest("Bu kayıt için bekleyen bir iade isteği yok.");
+
             record.IsReturned = true;
             record.ReturnDate = DateTime.Now;
+            record.ReturnRequestStatus = ReturnRequestStatus.Approved;
 
-            record.Book!.Status = BookStatus.Available;
-            record.Book.ReturnedAt = DateTime.Now;
+            if (record.Book != null)
+            {
+                record.Book.Status = BookStatus.Available;
+                record.Book.ReturnedAt = DateTime.Now;
+            }
 
             await _context.SaveChangesAsync();
 
             return Ok(new
             {
-                message = "Book returned successfully.",
-                returnedAt = record.Book.ReturnedAt
+                message = "İade isteği onaylandı. Kitap iade edilmiş olarak işaretlendi."
             });
         }
 
-        // 🔹 7) Kayıt silme (SADECE ADMIN)
+        // 🔹 9) ADMIN: İade isteğini REDDEDER → kullanıcıya 1 uyarı yazılır
+        // PUT: /api/BorrowRecords/{id}/reject-return
+        [HttpPut("{id:int}/reject-return")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> RejectReturn(int id)
+        {
+            var record = await _context.BorrowRecords
+                .Include(br => br.User)
+                .FirstOrDefaultAsync(br => br.Id == id);
+
+            if (record == null)
+                return NotFound("Borrow record not found.");
+
+            if (record.IsReturned)
+                return BadRequest("This book has already been returned.");
+
+            if (record.ReturnRequestStatus != ReturnRequestStatus.Pending)
+                return BadRequest("Bu kayıt için bekleyen bir iade isteği yok.");
+
+            if (record.User == null)
+                return BadRequest("User not loaded for this record.");
+
+            // İade isteği reddedildi
+            record.ReturnRequestStatus = ReturnRequestStatus.Rejected;
+
+            // Ortak ceza sistemi: WarningCount / IsLocked / IsDeleted
+            ApplyWarning(record.User);
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = "İade isteği reddedildi. Kullanıcıya 1 uyarı yazıldı."
+            });
+        }
+
+        // 🔹 10) Kayıt silme (SADECE ADMIN)
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
@@ -208,6 +296,25 @@ namespace Library.API.Controllers
             await _context.SaveChangesAsync();
 
             return NoContent();
+        }
+
+        // 🔧 Ortak ceza sistemi (gecikme + iade reddi aynı mantığı kullansın)
+        private static void ApplyWarning(User user)
+        {
+            // Burada User entity'nde olduğunu varsaydığımız alanlar:
+            // int WarningCount, bool IsLocked, bool IsDeleted
+
+            user.WarningCount++;
+
+            if (user.WarningCount >= 3)
+            {
+                user.IsLocked = true;
+                user.IsDeleted = true;
+            }
+            else if (user.WarningCount >= 2)
+            {
+                user.IsLocked = true;
+            }
         }
     }
 }

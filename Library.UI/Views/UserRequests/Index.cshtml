@@ -18,15 +18,15 @@
     }
 
     <div class="table-responsive mt-3">
-        <table class="table table-bordered table-striped">
+        <table class="table table-bordered table-striped align-middle">
             <thead class="table-dark">
                 <tr>
-                    <th style="width: 15%;">İstek Yapan Kullanıcı</th>
-                    <th style="width: 25%;">Kitap Adı</th>
-                    <th style="width: 30%;">Mesaj (Önizleme)</th>
+                    <th style="width: 15%;">Kullanıcı</th>
+                    <th style="width: 20%;">Talep Konusu</th>
+                    <th style="width: 35%;">Mesaj</th>
                     <th style="width: 10%;">Tarih</th>
                     <th style="width: 10%;">Durum</th>
-                    <th style="width: 10%;">İşlem</th>
+                    <th style="width: 10%;" class="text-center">İşlem</th>
                 </tr>
             </thead>
             <tbody>
@@ -34,14 +34,26 @@
                 {
                     <tr>
                         <td class="fw-bold">@item.UserName</td>
-
                         <td class="fw-bold">@item.Title</td>
 
-                        <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="@item.Message">
-                            @item.Message
+                        <td>
+                            @if (!string.IsNullOrEmpty(item.Message) && item.Message.Length > 50)
+                            {
+                                <span class="text-muted">@item.Message.Substring(0, 50)...</span>
+                                <a href="javascript:void(0);"
+                                   class="text-primary small text-decoration-none fw-bold ms-1"
+                                   onclick="showReadMessageModal('@System.Web.HttpUtility.JavaScriptStringEncode(item.Message)')">
+                                    <i class="fa-solid fa-eye"></i> Tamamını Oku
+                                </a>
+                            }
+                            else
+                            {
+                                @item.Message
+                            }
                         </td>
 
                         <td>@item.CreatedAt.ToShortDateString()</td>
+
                         <td>
                             @if (item.Status == 0)
                             {
@@ -57,13 +69,16 @@
                             }
                         </td>
 
-                        <td>
-                            <button type="button" class="btn btn-sm btn-primary"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#responseModal"
-                                    onclick="openResponseModal('@item.Id', '@item.Title', '@item.Status', '@item.AdminResponse')">
-                                Yanıtla / Güncelle
-                            </button>
+                        <td class="text-center">
+                            @if (item.Status == 0)
+                            {
+                                <button type="button" class="btn btn-sm btn-primary"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#responseModal"
+                                        onclick="openResponseModal('@item.Id', '@item.Title', '@item.Status', '@item.AdminResponse')">
+                                    <i class="fa-solid fa-reply"></i> Yanıtla
+                                </button>
+                            }
                         </td>
                     </tr>
                 }
@@ -72,50 +87,77 @@
     </div>
 </div>
 
-<div class="modal fade" id="responseModal" tabindex="-1" aria-labelledby="modalLabel" aria-hidden="true">
+<div class="modal fade" id="responseModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <form asp-action="UpdateStatus" method="post">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="modalLabel">İsteği Yanıtla</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title">💬 İsteği Yanıtla</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <input type="hidden" id="modalRequestId" name="Id" />
 
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Kitap Adı:</label>
-                        <span id="modalBookTitle" class="text-primary"></span>
+                        <label class="form-label fw-bold">Talep Konusu:</label>
+                        <p id="modalBookTitle" class="text-primary fw-bold mb-0"></p>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Durum</label>
+                        <label class="form-label text-muted small">Kararınız</label>
                         <select class="form-select" name="Status" id="modalStatus">
-                            <option value="0">Beklemede</option>
-                            <option value="1">Onaylandı</option>
-                            <option value="2">Reddedildi</option>
+                            <option value="0">Beklemede Kalsın</option>
+                            <option value="1">✅ Onayla</option>
+                            <option value="2">❌ Reddet</option>
                         </select>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Admin Yanıtı</label>
-                        <textarea class="form-control" name="AdminResponse" id="modalAdminResponse" rows="3" placeholder="Kullanıcıya notunuzu yazın..."></textarea>
+                        <label class="form-label text-muted small">Kullanıcıya Mesajınız</label>
+                        <textarea class="form-control" name="AdminResponse" id="modalAdminResponse" rows="4" placeholder="Örn: İsteğiniz için çalışmalara başlanmıştır."></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
-                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-paper-plane me-1"></i> Yanıtı Gönder
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
+<div class="modal fade" id="readMessageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title"><i class="fa-regular fa-comment-dots me-2"></i>Mesaj Detayı</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p id="fullMessageContent" class="text-break fs-6"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Kapat</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+    // Yanıtlama Modalı Açma
     function openResponseModal(id, title, status, response) {
         document.getElementById('modalRequestId').value = id;
         document.getElementById('modalBookTitle').innerText = title;
         document.getElementById('modalStatus').value = status;
-        document.getElementById('modalAdminResponse').value = response || "";
+        document.getElementById('modalAdminResponse').value = (response && response !== "null") ? response : "";
+    }
+
+    // Uzun Mesaj Okuma Modalı Açma
+    function showReadMessageModal(message) {
+        document.getElementById('fullMessageContent').innerText = message;
+        var myModal = new bootstrap.Modal(document.getElementById('readMessageModal'));
+        myModal.show();
     }
 </script>

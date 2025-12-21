@@ -3,27 +3,26 @@
 @{
     ViewData["Title"] = Model.Title;
     var userRole = Context.Session.GetString("role");
-
-    // --- DÜZELTME: Bu mantığı sayfanın en tepesine taşıdık ---
+    // Kullanıcı oturum bilgilerini alıyoruz
     var currentUserId = Context.Session.GetInt32("userId");
     var hasUserReviewed = false;
-    
-    // Eğer kullanıcı giriş yapmışsa ve yorum listesi boş değilse kontrol et
+
+    // Eğer kullanıcı giriş yapmışsa ve yorum listesi boş değilse, daha önce yorum yapıp yapmadığını kontrol et
     if (currentUserId.HasValue && Model.Reviews != null)
     {
         hasUserReviewed = Model.Reviews.Any(r => r.UserId == currentUserId.Value);
     }
-    // ---------------------------------------------------------
 }
 
 <div class="container mt-5 mb-5">
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body p-0">
             <div class="row g-0">
+
                 <div class="col-md-4 bg-light text-center d-flex align-items-center justify-content-center p-4">
                     @if (!string.IsNullOrEmpty(Model.CoverImageUrl))
                     {
-                        <img src="@Model.CoverImageUrl" class="img-fluid rounded shadow" style="max-height: 400px;" 
+                        <img src="@Model.CoverImageUrl" class="img-fluid rounded shadow" style="max-height: 400px; object-fit: contain;"
                              alt="@Model.Title" onerror="this.onerror=null;this.src='/images/placeholder.png';" />
                     }
                     else
@@ -38,12 +37,24 @@
                             <span class="badge bg-secondary mb-2">@(Model.CategoryName ?? "Genel")</span>
                             <h2 class="fw-bold mb-1">@Model.Title</h2>
                             <h5 class="text-muted"><i class="fa-solid fa-feather me-2"></i>@(Model.AuthorName ?? "Yazar Bilinmiyor")</h5>
-                            @if(!string.IsNullOrEmpty(Model.PublisherName))
+
+                            @if (!string.IsNullOrEmpty(Model.PublisherName))
                             {
-                                <small class="text-muted d-block mt-1">Yayınevi: @Model.PublisherName</small>
+                                <h6 class="text-muted mt-2">
+                                    <i class="fa-solid fa-building me-2"></i>@Model.PublisherName
+                                </h6>
+                            }
+
+                            @if (!string.IsNullOrEmpty(Model.Location))
+                            {
+                                <div class="mt-3">
+                                    <span class="badge bg-light text-dark border p-2">
+                                        <i class="fa-solid fa-map-pin text-danger me-2"></i> Raf Konumu: <strong>@Model.Location</strong>
+                                    </span>
+                                </div>
                             }
                         </div>
-                        
+
                         @if (userRole == "admin")
                         {
                             <div class="btn-group">
@@ -63,27 +74,33 @@
                             <p class="fs-5">@(Model.PublishYear.HasValue ? Model.PublishYear.Value.ToString() : "-")</p>
                         </div>
                         <div class="col-6">
-                            <small class="text-uppercase text-muted fw-bold">Puan</small>
+                            <small class="text-uppercase text-muted fw-bold">Ortalama Puan</small>
                             <div class="text-warning">
-                                @if(Model.AverageRating > 0) 
+                                @if (Model.AverageRating > 0)
                                 {
                                     <span>@Model.AverageRating.ToString("0.0")</span> <i class="fa-solid fa-star"></i>
                                 }
-                                else { <span class="text-muted small">Henüz puanlanmadı</span> }
+                                else
+                                {
+                                    <span class="text-muted small">Henüz puanlanmadı</span>
+                                }
                             </div>
                         </div>
                     </div>
 
+                    @* ======= KRİTİK DEĞİŞİKLİK BURADA BAŞLAR ======= *@
                     <div class="mt-auto">
                         @if (Model.IsAvailable)
                         {
-                            <form asp-controller="BorrowRecords" asp-action="Create" method="post" onsubmit="return confirm('Bu kitabı ödünç almak istiyor musunuz?');">
-                                <input type="hidden" name="bookId" value="@Model.Id" />
-                                <button type="submit" class="btn btn-success btn-lg px-5 w-100 w-md-auto">
-                                    <i class="fa-solid fa-book-reader me-2"></i> Ödünç Al
-                                </button>
-                                <div class="mt-2 text-success small"><i class="fa-solid fa-circle-check"></i> Stokta Mevcut</div>
-                            </form>
+                            @* Tarayıcı uyarısı yerine Modalı açan buton *@
+                            <button type="button"
+                                    class="btn btn-success btn-lg px-5 w-100 w-md-auto"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#confirmBorrowModal"
+                                    data-book-id="@Model.Id"
+                                    data-book-title="@Model.Title">
+                                <i class="fa-solid fa-book-reader me-2"></i> Ödünç Al
+                            </button>
                         }
                         else
                         {
@@ -92,6 +109,7 @@
                             </button>
                         }
                     </div>
+                    @* ======= KRİTİK DEĞİŞİKLİK BURADA BİTER ======= *@
                 </div>
             </div>
         </div>
@@ -100,7 +118,7 @@
     <div class="row mt-5">
         <div class="col-lg-8">
             <h4 class="fw-bold mb-4">Okuyucu Yorumları (@(Model.Reviews?.Count ?? 0))</h4>
-            
+
             @if (Model.Reviews != null && Model.Reviews.Any())
             {
                 foreach (var review in Model.Reviews)
@@ -112,7 +130,10 @@
                                 <small class="text-muted">@review.Date.ToString("dd.MM.yyyy")</small>
                             </div>
                             <div class="mb-2 text-warning small">
-                                @for(int i=0; i<review.Rating; i++){ <i class="fa-solid fa-star"></i> }
+                                @for (int i = 0; i < review.Rating; i++)
+                                {
+                                    <i class="fa-solid fa-star"></i>
+                                }
                             </div>
                             <p class="mb-0 text-secondary">@review.Comment</p>
                         </div>
@@ -129,10 +150,9 @@
             <div class="card border-0 shadow-sm bg-light">
                 <div class="card-body">
                     <h5 class="fw-bold mb-3">Puan Ver</h5>
-                    
+
                     @if (!string.IsNullOrEmpty(userRole))
                     {
-                        // --- DÜZELTME: Yukarıda tanımladığımız değişkeni burada kullanıyoruz ---
                         if (hasUserReviewed)
                         {
                             <div class="alert alert-warning text-center border-0 bg-warning-subtle text-warning-emphasis">
@@ -174,3 +194,56 @@
         </div>
     </div>
 </div>
+
+@* ======= MODAL PENCERESİ VE JAVASCRIPT BURADA BAŞLAR ======= *@
+
+<div class="modal fade" id="confirmBorrowModal" tabindex="-1" aria-labelledby="confirmBorrowModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="confirmBorrowModalLabel"><i class="fa-solid fa-book-reader me-2"></i> Ödünç Alma Onayı</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+
+            <form asp-controller="BorrowRecords" asp-action="Create" method="post" id="borrowForm">
+                <div class="modal-body">
+                    <p>
+                        **<span id="bookTitlePlaceholder" class="fw-bold"></span>** adlı kitabı ödünç almak istediğinize emin misiniz?
+                    </p>
+                    <input type="hidden" name="bookId" id="modalBookId" />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-success">Tamam, Ödünç Al</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+@section Scripts {
+    <script>
+        // jQuery hazır olduğunda çalıştır
+        $(document).ready(function () {
+
+            // confirmBorrowModal açılmadan hemen önce tetiklenir
+            $('#confirmBorrowModal').on('show.bs.modal', function (event) {
+
+                var button = $(event.relatedTarget); // Modalı tetikleyen buton
+                var bookId = button.data('book-id');
+                var bookTitle = button.data('book-title');
+
+                // Modal içeriğini güncelle
+                var modal = $(this);
+
+                // 1. Gizli BookId input alanına değeri yerleştir
+                modal.find('#modalBookId').val(bookId);
+
+                // 2. Kitap adını placeholder'a yerleştir
+                modal.find('#bookTitlePlaceholder').text(bookTitle);
+            });
+        });
+    </script>
+}
+@* ======= MODAL PENCERESİ VE JAVASCRIPT BURADA BİTER ======= *@

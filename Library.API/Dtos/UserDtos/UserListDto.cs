@@ -11,7 +11,8 @@
 
         public string? PhoneNumber { get; set; }  // EKLENDİ
         public string? ProfileImageUrl { get; set; }
-
+        public bool IsLocked { get; set; } // API DTO'su
+        public bool IsDeleted { get; set; } // API DTO'su
         public string Role { get; set; } = "User";
     }
 }

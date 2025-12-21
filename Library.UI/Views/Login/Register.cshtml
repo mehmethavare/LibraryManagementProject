@@ -1,0 +1,136 @@
+﻿@model Library.UI.Models.RegisterRequestViewModel
+@{
+    // 🚨 KRİTİK AYAR: Bu sayfanın diğer Layout'ları KULLANMAMASINI sağlar.
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Yeni Hesap Oluştur</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f6f9; /* Sade bir arka plan */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .register-container {
+            width: 100%;
+            max-width: 500px; /* Formun genişliği */
+            padding: 20px;
+        }
+
+        .form-card {
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .form-control:focus {
+            box-shadow: 0 0 0 0.25rem rgba(44, 62, 80, 0.25);
+            border-color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="register-container">
+        <div class="card form-card">
+
+            <div class="card-header bg-primary text-white text-center">
+                <h4 class="mb-0">Yeni Hesap Oluştur</h4>
+            </div>
+
+            <div class="card-body p-4">
+
+                @* Başarı ve Hata Mesajları *@
+                @if (TempData["Error"] != null)
+                {
+                    <div class="alert alert-danger" role="alert">@TempData["Error"]</div>
+                }
+                @if (TempData["Success"] != null)
+                {
+                    <div class="alert alert-success" role="alert">@TempData["Success"]</div>
+                }
+
+                <form asp-action="Register" method="post">
+
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-floating mb-3 mb-md-0">
+                                <input asp-for="Name" class="form-control" placeholder="Adınız" />
+                                <label asp-for="Name">Adınız</label>
+                                <span asp-validation-for="Name" class="text-danger small"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input asp-for="Surname" class="form-control" placeholder="Soyadınız" />
+                                <label asp-for="Surname">Soyadınız</label>
+                                <span asp-validation-for="Surname" class="text-danger small"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-floating mb-3">
+                        <input asp-for="Email" class="form-control" placeholder="name@example.com" />
+                        <label asp-for="Email">E-posta</label>
+                        <span asp-validation-for="Email" class="text-danger small"></span>
+                    </div>
+
+                    <div class="form-floating mb-3">
+                        <input asp-for="PhoneNumber" class="form-control" placeholder="555 555 55 55" />
+                        <label asp-for="PhoneNumber">Telefon Numarası</label>
+                        <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-floating mb-3 mb-md-0">
+                                <input asp-for="Password" type="password" class="form-control" placeholder="Şifre" />
+                                <label asp-for="Password">Şifre</label>
+                                <span asp-validation-for="Password" class="text-danger small"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating mb-3 mb-md-0">
+                                <input asp-for="ConfirmPassword" type="password" class="form-control" placeholder="Şifre Tekrarı" />
+                                <label asp-for="ConfirmPassword">Şifre Tekrarı</label>
+                                <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">Hesap Oluştur</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card-footer text-center py-3">
+                <a asp-controller="Login" asp-action="Index">Zaten bir hesabım var (Giriş Yap)</a>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/jquery.validate.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/4.0.0/jquery.validate.unobtrusive.min.js"></script>
+
+</body>
+</html>

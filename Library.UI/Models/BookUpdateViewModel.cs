@@ -33,5 +33,7 @@ namespace Library.UI.Models
 
 		[Display(Name = "Kapak Görseli URL")]
 		public string? CoverImageUrl { get; set; }
-	}
+        [Display(Name = "Raf / Konum")]
+        public string? Location { get; set; }
+    }
 }

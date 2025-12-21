@@ -3,23 +3,27 @@
 <div class="container mt-5" style="max-width: 600px;">
     <div class="card shadow">
         <div class="card-header bg-primary text-white">
-            <h4 class="mb-0">Yeni Kitap İsteği</h4>
+            <h4 class="mb-0">Yeni İstek</h4>
         </div>
         <div class="card-body">
 
+            @* 🚨 GÜNCELLENDİ: MODEL VE API HATALARINI GÖSTERMEK İÇİN *@
+            @* Eğer ModelState geçerli değilse (validasyon hatası varsa) bu kutu görünür. *@
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert">
+                Lütfen aşağıdaki hataları düzeltin:
+            </div>
+
             <form asp-action="Create" method="post">
 
-              
-
                 <div class="mb-3">
-                    <label class="form-label">Kitap Adı</label>
-                    <input asp-for="Title" class="form-control" placeholder="Örn: Sefiller" required />
+                    <label class="form-label">Talep Konusu</label>
+                    <input asp-for="Title" class="form-control" placeholder="Örn: Sefiller Kitabının Eklenmesi" required />
                     <span asp-validation-for="Title" class="text-danger"></span>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Mesajınız / Notunuz</label>
-                    <textarea asp-for="Message" class="form-control" rows="4" placeholder="Kitabın belirli bir yayınevi veya baskısı hakkında not..." required></textarea>
+                    <label class="form-label">Mesajınız </label>
+                    <textarea asp-for="Message" class="form-control" rows="4" placeholder="İsteğiniz hakkında kısaca not..." required></textarea>
                     <span asp-validation-for="Message" class="text-danger"></span>
                 </div>
 

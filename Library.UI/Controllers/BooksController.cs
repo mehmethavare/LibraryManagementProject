@@ -115,9 +115,10 @@ namespace Library.UI.Controllers
             return View(model);
         }
         // GET: Details
+        // GET: Details
         public async Task<IActionResult> Details(int id)
         {
-            var client = GetClient(); // Token zorunlu değil
+            var client = GetClient();
 
             // 1. ADIM: Kitap Bilgisini Çek
             var bookResponse = await client.GetAsync($"Books/{id}");
@@ -125,14 +126,14 @@ namespace Library.UI.Controllers
             if (!bookResponse.IsSuccessStatusCode) return NotFound();
 
             var bookJson = await bookResponse.Content.ReadAsStringAsync();
+            // API'den gelen veriyi karşılıyoruz (BookUpdateViewModel içinde Location property'si olmalı)
             var bookData = JsonSerializer.Deserialize<BookUpdateViewModel>(bookJson,
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
             if (bookData == null) return NotFound();
 
-            // 2. ADIM: O Kitaba Ait Yorumları Çek
+            // 2. ADIM: Yorumları Çek (Burada değişiklik yok)
             var reviewsResponse = await client.GetAsync($"BookReviews/book/{id}");
-
             List<BookReviewViewModel> reviewsList = new List<BookReviewViewModel>();
 
             if (reviewsResponse.IsSuccessStatusCode)
@@ -143,7 +144,7 @@ namespace Library.UI.Controllers
                     ?? new List<BookReviewViewModel>();
             }
 
-            // 3. ADIM: Modeli Birleştir
+            // 3. ADIM: Modeli Birleştir (GÜNCELLEME BURADA)
             var detailModel = new BookDetailViewModel
             {
                 Id = bookData.Id,
@@ -153,8 +154,12 @@ namespace Library.UI.Controllers
                 PublishYear = bookData.PublishYear,
                 CoverImageUrl = bookData.CoverImageUrl,
                 Status = bookData.Status,
+                PublisherName = bookData.PublisherName,
 
-                // Yorumları View Model'e dönüştür
+                // --- EKSİK OLAN SATIR BU: ---
+                Location = bookData.Location,
+                // ----------------------------
+
                 Reviews = reviewsList.Select(r => new ReviewViewModel
                 {
                     Id = r.Id,
@@ -224,6 +229,8 @@ namespace Library.UI.Controllers
                 CategoryName = model.Kategori,
                 PublishYear = model.YayinYili,
                 PublisherName = model.YayinciAdi,
+                Location = model.Location,
+                CoverImageUrl = model.CoverImageUrl
             };
 
             var response = await client.PostAsJsonAsync("Books", apiModel);

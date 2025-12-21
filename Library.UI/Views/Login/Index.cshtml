@@ -1,188 +1,239 @@
 ﻿@model Library.UI.Models.LoginRequestViewModel
 
 @{
-    ViewData["Title"] = "Giriş Yap";
-    Layout = null;
+	ViewData["Title"] = "Giriş Yap";
+	Layout = null;
 }
 
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Giriş Yap - Kütüphane Yönetimi</title>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Giriş Yap - Kütüphane Yönetimi</title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+	<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
-    <style>
-        html, body {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            width: 100%;
-        }
+	<style>
+				html, body {
+						height: 100%;
+						margin: 0;
+						padding: 0;
+						width: 100%;
 
-        body {
-            /* Arka plan görseli */
-            background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), url('https://images.unsplash.com/photo-1481627834876-b7833e8f5570?q=80&w=2000&auto=format&fit=crop');
-            background-size: cover;
-            background-position: center;
-            backdrop-filter: blur(8px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
+		}
 
-        .login-card {
-            /* DEĞİŞİKLİK 1: Ana kapsayıcının rengini kaldırdım, alt panellere vereceğiz */
-            background-color: transparent;
-            width: 100%;
-            max-width: 750px; /* Genişlik ideal */
-            /* DEĞİŞİKLİK 2: Yüksekliği azalttım (400px -> 320px) */
-            min-height: 300px;
-            display: flex;
-            flex-wrap: wrap;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.1);
-            border-radius: 6px;
-            overflow: hidden;
-            margin: 20px;
-        }
+				body {
 
-        .left-panel {
-            flex: 1 1 280px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            border-right: 1px solid rgba(255,255,255,0.1);
-            /* DEĞİŞİKLİK 3: Padding azaltıldı (30px -> 20px) */
-            padding: 10px;
-            color: white;
-            /* DEĞİŞİKLİK 4: Hafif saydamlık verildi (0.2 opaklık) */
-            background-color: rgba(65, 85, 88, 0.95);
-            /* Min yükseklik azaltıldı */
-            min-height: 200px;
-        }
+			/* Arka plan görseli */
+						background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), url('https://images.unsplash.com/photo-1481627834876-b7833e8f5570?q=80&w=2000&auto=format&fit=crop');
+						background-size: cover;
+						background-position: center;
+						backdrop-filter: blur(8px);
+						display: flex;
+						align-items: center;
+						justify-content: center;
+						font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 
-        .logo-icon {
-            /* İkon boyutu biraz küçültüldü ki panel taşmasın (6rem -> 5rem) */
-            font-size: 5rem;
-            margin-bottom: 10px;
-            color: #fff;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
-        }
+		}
 
-        .right-panel {
-            flex: 1.5 1 320px;
-            /* DEĞİŞİKLİK 5: Padding azaltıldı (40px -> 30px) */
-            padding: 30px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            /* DEĞİŞİKLİK 6: Koyu Yeşil/Gri Rengi %90 opaklıkla (0.9) verdik */
-            /* #485f62 renginin RGBA karşılığı: 72, 95, 98 */
-            background-color: rgba(72, 95, 98, 0.8);
-        }
+				.login-card {
+						background-color: transparent;
+						width: 100%;
+						max-width: 750px;
+						min-height: 300px;
+						display: flex;
+						flex-wrap: wrap;
+						box-shadow: 0 15px 40px rgba(0,0,0,0.1);
+						border-radius: 6px;
+						overflow: hidden;
+						margin: 20px;
 
-        .custom-input {
-            /* Inputlar da hafif saydam olsun (Opsiyonel, şık durur) */
-            background-color: rgba(232, 240, 254, 0.9);
-            border: none;
-            border-radius: 2px;
-            height: 40px; /* Yükseklik 45 -> 40 */
-            margin-bottom: 12px; /* Boşluk azaltıldı */
-            padding-left: 15px;
-            font-size: 14px;
-        }
+		}
 
-            .custom-input:focus {
-                background-color: #fff;
-                box-shadow: none;
-                outline: 2px solid #aab7b8;
-            }
+				.left-panel {
+						flex: 1 1 280px;
+						display: flex;
+						flex-direction: column;
+						align-items: center;
+						justify-content: center;
+						border-right: 1px solid rgba(255,255,255,0.1);
+						padding: 10px;
+						color: white;
+						background-color: rgba(65, 85, 88, 0.95);
+						min-height: 200px;
 
-        .btn-login {
-            background-color: rgba(255, 255, 255, 0.9);
-            color: #333;
-            font-weight: bold;
-            border-radius: 2px;
-            padding: 8px 20px; /* Buton inceltildi */
-            transition: all 0.3s;
-            border: none;
-            font-size: 14px;
-        }
+		}
 
-            .btn-login:hover {
-                background-color: #fff;
-                transform: translateY(-1px);
-                box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            }
+				.logo-icon {
+						font-size: 5rem;
+						margin-bottom: 10px;
+						color: #fff;
+						text-shadow: 0 2px 10px rgba(0,0,0,0.3);
 
-        .forgot-password {
-            color: rgba(255,255,255,0.7);
-            font-size: 12px; /* Font küçültüldü */
-            text-decoration: none;
-            cursor: pointer;
-            transition: color 0.2s;
-        }
+		}
 
-            .forgot-password:hover {
-                text-decoration: underline;
-                color: #fff;
-            }
-    </style>
+				.right-panel {
+						flex: 1.5 1 320px;
+						padding: 30px;
+						display: flex;
+						flex-direction: column;
+						justify-content: center;
+						background-color: rgba(72, 95, 98, 0.8);
+
+		}
+
+				.custom-input {
+						background-color: rgba(232, 240, 254, 0.9);
+						border: none;
+						border-radius: 2px;
+						height: 40px;
+						margin-bottom: 12px;
+						padding-left: 15px;
+						font-size: 14px;
+
+		}
+
+					.custom-input:focus {
+							background-color: #fff;
+							box-shadow: none;
+							outline: 2px solid #aab7b8;
+
+		}
+
+				.btn-login {
+						background-color: rgba(255, 255, 255, 0.9);
+						color: #333;
+						font-weight: bold;
+						border-radius: 2px;
+						padding: 8px 20px;
+						transition: all 0.3s;
+						border: none;
+						font-size: 14px;
+
+		}
+
+					.btn-login:hover {
+							background-color: #fff;
+							transform: translateY(-1px);
+							box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+
+		}
+
+				.forgot-password {
+						color: rgba(255,255,255,0.7);
+						font-size: 12px;
+						text-decoration: none;
+						cursor: pointer;
+						transition: color 0.2s;
+
+		}
+
+					.forgot-password:hover {
+							text-decoration: underline;
+							color: #fff;
+
+		}
+
+
+		/* YENİ STİL: Kayıt Ol butonu */
+				.btn-register-link {
+						color: #fff;
+						background-color: transparent;
+						border: 1px solid rgba(255, 255, 255, 0.5);
+						border-radius: 2px;
+						padding: 6px 15px;
+						font-size: 13px;
+						text-decoration: none;
+						transition: all 0.3s;
+
+		}
+
+					.btn-register-link:hover {
+							background-color: rgba(255, 255, 255, 0.1);
+							color: #fff;
+							border-color: #fff;
+
+		}
+
+
+	</style>
 </head>
 <body>
 
-    <div class="login-card">
-        <div class="left-panel">
-            <div class="logo-icon">
-                <i class="fa-solid fa-book-open"></i>
-            </div>
-            <div class="text-center">
-                <h5 class="m-0 fw-bold">Kütüphane Yönetimi</h5>
-            </div>
-        </div>
+	<div class="login-card">
+		<div class="left-panel">
+			<div class="logo-icon">
+				<i class="fa-solid fa-book-open"></i>
+			</div>
+			<div class="text-center">
+				<h5 class="m-0 fw-bold">Kütüphane Yönetimi</h5>
+			</div>
+		</div>
 
-        <div class="right-panel">
-            <form asp-action="Index" method="post">
-                <div asp-validation-summary="ModelOnly" class="text-white small mb-3"></div>
+		<div class="right-panel">
 
-                <input asp-for="Email" class="form-control custom-input" placeholder="E-Posta Adresi" />
-                <span asp-validation-for="Email" class="text-warning small d-block mb-2"></span>
+			@if (TempData["Success"] != null)
+			{
+				<div class="alert alert-success small mb-3">@TempData["Success"]</div>
+			}
+			@if (TempData["Error"] != null)
+			{
+				<div class="alert alert-danger small mb-3">@TempData["Error"]</div>
+			}
 
-                <input asp-for="Password" type="password" class="form-control custom-input" placeholder="Şifre" />
-                <span asp-validation-for="Password" class="text-warning small d-block mb-2"></span>
+			<form asp-action="Index" method="post">
+				<div asp-validation-summary="ModelOnly" class="text-white small mb-3"></div>
 
-                <div class="d-flex justify-content-between align-items-center mt-3">
-                    <a href="javascript:void(0);" onclick="showForgotInfo()" class="forgot-password">Parolamı unuttum</a>
-                    <button type="submit" class="btn btn-login">Giriş Yap</button>
-                </div>
-            </form>
-        </div>
-    </div>
+				<input asp-for="Email" class="form-control custom-input" placeholder="E-Posta Adresi" />
+				<span asp-validation-for="Email" class="text-warning small d-block mb-2"></span>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/jquery.validate.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/4.0.0/jquery.validate.unobtrusive.min.js"></script>
+				<input asp-for="Password" type="password" class="form-control custom-input" placeholder="Şifre" />
+				<span asp-validation-for="Password" class="text-warning small d-block mb-2"></span>
 
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+				<div class="d-flex justify-content-between align-items-center mt-3">
+					<a href="javascript:void(0);" onclick="showForgotInfo()" class="forgot-password">Parolamı unuttum</a>
+					<button type="submit" class="btn btn-login">Giriş Yap</button>
+				</div>
 
-    <script>
-        function showForgotInfo() {
-            Swal.fire({
-                title: 'Bilgilendirme',
-                text: 'Şifre işlemleri için lütfen kütüphane yetkilisi ile iletişime geçiniz.',
-                icon: 'info',
-                confirmButtonText: 'Tamam',
-                confirmButtonColor: '#485f62',
-                background: '#f8f9fa',
-                heightAuto: false
-            });
-        }
-    </script>
+				<div class="text-center mt-4">
+					@* 🚨 KRİTİK DEĞİŞİKLİK: Linki Modal'ı açacak şekilde güncelliyoruz. *@
+					<a asp-controller="Login" asp-action="Register" class="btn-register-link">Yeni Hesap Oluştur</a>
+				</div>
+
+			</form>
+		</div>
+	</div>
+
+	@* 🚨 KRİTİK EKLENTİ 1: Modal İçeriğinin Yükleneceği Kapsayıcı (Placeholder) - SİLİNMELİ *@
+	@* <div class="modal fade" id="modalPlaceholder" tabindex="-1" aria-labelledby="registerModalLabel" aria-hidden="true">
+	<div id="modal-content-container"></div>
+	</div> *@
+
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/jquery.validate.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/4.0.0/jquery.validate.unobtrusive.min.js"></script>
+
+	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+	<script>
+		function showForgotInfo() {
+			Swal.fire({
+				title: 'Bilgilendirme',
+				text: 'Şifre işlemleri için lütfen kütüphane yetkilisi ile iletişime geçiniz.',
+				icon: 'info',
+				confirmButtonText: 'Tamam',
+				confirmButtonColor: '#485f62',
+				background: '#f8f9fa',
+				heightAuto: false
+			});
+		}
+
+		// 🚨 KRİTİK EKLENTİ 2: Modal açıldığında AJAX ile içeriği yükleyen JavaScript - SİLİNMELİ
+		// $('#modalPlaceholder').on('show.bs.modal', function (event) { ... });
+		// $('#modalPlaceholder').on('hidden.bs.modal', function () { ... });
+	</script>
 
 </body>
 </html>
