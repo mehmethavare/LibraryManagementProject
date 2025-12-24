@@ -4,21 +4,7 @@
 
 <div class="row mb-3">
     <div class="col-md-6">
-        <div class="input-group">
-            <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass"></i></span>
-            <input type="text" id="searchInput" onkeyup="searchTable()" class="form-control" placeholder="🔍 Kitap veya kullanıcı ara...">
-        </div>
-    </div>
-
-    <div class="col-md-6">
-        <div class="input-group">
-            <span class="input-group-text bg-light fw-bold">Sıralama:</span>
-            <select id="sortSelect" class="form-select" onchange="applySort()">
-                <option value="default" selected>İade Bekleyenler</option>
-                <option value="borrow_desc">Yeniden Eskiye</option>
-                <option value="borrow_asc">Eskiden Yeniye</option>
-            </select>
-        </div>
+        <input type="text" id="searchInput" onkeyup="searchTable()" class="form-control" placeholder="🔍 Kitap veya kullanıcı ara...">
     </div>
 </div>
 
@@ -28,70 +14,72 @@
 }
 else
 {
-    <table class="table table-striped table-hover mt-3" id="borrowTable">
+    <table class="table table-striped table-hover mt-3 align-middle" id="borrowTable">
         <thead class="table-dark">
             <tr>
                 <th>Kitap Adı</th>
                 <th>Ödünç Alan</th>
                 <th>Ödünç Tarihi</th>
-                <th>İade Tarihi</th>
-                <th>Durum</th>
-                <th>İşlemler</th>
+                <th>Durum / Talep</th>
+                <th class="text-end pe-3">İşlemler</th>
             </tr>
         </thead>
         <tbody>
-            @foreach (var item in Model
-                    .OrderBy(x => x.IsReturned)
-                    .ThenByDescending(x => x.BorrowDate))
+            @foreach (var item in Model.OrderByDescending(x => x.BorrowDate))
             {
                 <tr>
                     <td class="fw-bold">@item.BookTitle</td>
                     <td>@item.UserName</td>
+                    <td>@item.BorrowDate.ToShortDateString()</td>
 
-                    <td data-date="@item.BorrowDate.ToString("yyyy-MM-dd")">
-                        @item.BorrowDate.ToShortDateString()
-                    </td>
-
-                    <td data-date="@(item.ReturnDate.HasValue ? item.ReturnDate.Value.ToString("yyyy-MM-dd") : "9999-12-31")">
-                        @if (item.ReturnDate.HasValue)
+                    <td>
+                        @if (item.IsReturned)
                         {
-                            @item.ReturnDate.Value.ToShortDateString()
+                            <span class="badge bg-success">Teslim Alındı</span>
                         }
                         else
                         {
-                            <span class="text-muted">-</span>
+                            @if (item.ReturnRequestStatus == 1) @* 1 = Pending *@
+                            {
+                                <span class="badge bg-warning text-dark animate__animated animate__pulse animate__infinite">
+                                    <i class="fa-solid fa-hourglass-half"></i> Onay Bekliyor
+                                </span>
+                            }
+                            else if (item.ReturnRequestStatus == 3) @* 3 = Rejected *@
+                            {
+                                <span class="badge bg-danger">Talep Reddedildi</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Kullanıcıda</span>
+                            }
                         }
                     </td>
 
-                    <td>
-                        @if (item.IsReturned == true)
+                    <td class="text-end pe-3">
+                        @* Sadece iade talebi varsa Onayla/Reddet butonlarını göster *@
+                        @if (!item.IsReturned && item.ReturnRequestStatus == 1)
                         {
-                            <span class="badge bg-success">İade Edildi</span>
-                        }
-                        else
-                        {
-                            <span class="badge bg-danger">Ödünç Alındı</span>
-                        }
-                    </td>
+                            <div class="d-inline-flex gap-1">
+                                <form asp-controller="BorrowRecords" asp-action="ApproveReturn" asp-route-id="@item.Id" method="post" id="approve-form-@item.Id" style="display:inline;">
+                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="confirmBorrowAction('@item.Id', 'approve')">
+                                        <i class="fa-solid fa-check"></i> Onayla
+                                    </button>
+                                </form>
 
-                    <td>
-                        <form id="deleteForm_@item.Id" asp-controller="BorrowRecords" asp-action="Delete" asp-route-id="@item.Id" method="post" style="display:inline;">
-                            <button type="button" class="btn btn-sm btn-danger" onclick="confirmDelete('@item.Id')">
-                                <i class="fa-solid fa-trash"></i> Sil
+                                <form asp-controller="BorrowRecords" asp-action="RejectReturn" asp-route-id="@item.Id" method="post" id="reject-form-@item.Id" style="display:inline;">
+                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmBorrowAction('@item.Id', 'reject')">
+                                        <i class="fa-solid fa-xmark"></i> Reddet
+                                    </button>
+                                </form>
+                            </div>
+                        }
+
+                        <form id="deleteForm_@item.Id" asp-controller="BorrowRecords" asp-action="Delete" asp-route-id="@item.Id" method="post" style="display:inline;" class="ms-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="confirmDelete('@item.Id')">
+                                <i class="fa-solid fa-trash"></i>
                             </button>
                         </form>
-
-                        @if (item.IsReturned != true)
-                        {
-                            <form asp-controller="BorrowRecords" asp-action="ReturnBook" method="post" style="display:inline;">
-                                <input type="hidden" name="id" value="@item.Id" />
-                                <input type="hidden" name="dueDateStr" value="@(item.ReturnDate.HasValue? item.ReturnDate.Value.ToString("yyyy-MM-dd HH:mm:ss") : DateTime.MaxValue.ToString("yyyy-MM-dd HH:mm:ss"))" />
-
-                                <button type="submit" class="btn btn-sm btn-warning text-dark" title="Kitabı İade Al">
-                                    <i class="fa-solid fa-rotate-left"></i> İade Et
-                                </button>
-                            </form>
-                        }
                     </td>
                 </tr>
             }
@@ -100,75 +88,40 @@ else
 }
 
 <script>
-    // --- MERKEZİ SIRALAMA FONKSİYONU ---
-    function applySort() {
-        var selectBox = document.getElementById("sortSelect");
-        var selectedValue = selectBox.value; // Seçilen değer (örn: borrow_desc)
-
-        var table = document.getElementById("borrowTable");
-        var tbody = table.querySelector("tbody");
-        var rows = Array.from(tbody.querySelectorAll("tr"));
-
-        rows.sort(function (rowA, rowB) {
-            // İADE DURUMUNU KONTROL ET (Index 4: Durum Sütunu)
-            // Rozet metnini alıyoruz: "İade Edildi" veya "Ödünç Alındı"
-            var statusA = rowA.cells[4].innerText.trim();
-            var statusB = rowB.cells[4].innerText.trim();
-
-            // "Ödünç Alındı" olanlar (İade Bekleyenler) önceliklidir (False)
-            // "İade Edildi" olanlar sonradır (True)
-            var isReturnedA = statusA.includes("İade Edildi");
-            var isReturnedB = statusB.includes("İade Edildi");
-
-            // --- 1. SENARYO: VARSAYILAN SIRALAMA (İki Aşamalı) ---
-            if (selectedValue === "default") {
-                // Önce iade durumuna bak (False önce gelir)
-                if (isReturnedA !== isReturnedB) {
-                    return isReturnedA - isReturnedB;
+        // Onayla ve Reddet Butonları İçin SweetAlert (Ters Mantık Düzenlemesi)
+        function confirmBorrowAction(id, type) {
+            const isApprove = type === 'approve';
+        Swal.fire({
+            title: isApprove ? 'İadeyi Onayla' : 'İadeyi Reddet',
+        text: isApprove ? "Kitabı teslim aldığınızı onaylıyor musunuz?" : "İade talebini reddetmek istediğinize emin misiniz?",
+        icon: isApprove ? 'success' : 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#6c757d', // Gri Renk (Vazgeç butonu için)
+        cancelButtonColor: isApprove ? '#198754' : '#dc3545', // Yeşil veya Kırmızı (Evet butonu için)
+        confirmButtonText: 'Vazgeç',   // Sol taraftaki ana buton "Vazgeç" oldu
+        cancelButtonText: 'Evet',      // Sağ taraftaki işlem butonu "Evet" oldu
+        reverseButtons: true           // Butonların yerini (Evet sağda, Vazgeç solda) sabitler
+            }).then((result) => {
+                // "Evet" butonuna basıldığında (yani cancel/dismiss edildiğinde) form gönderilir
+                if (result.dismiss === Swal.DismissReason.cancel) {
+                    const formId = (isApprove ? 'approve-form-' : 'reject-form-') + id;
+        const form = document.getElementById(formId);
+        if (form) {
+            form.submit();
+                    }
                 }
-                // Durumları aynıysa tarihe bak (En yeni tarih üstte)
-                var dateA = new Date(rowA.cells[2].getAttribute("data-date"));
-                var dateB = new Date(rowB.cells[2].getAttribute("data-date"));
-                return dateB - dateA;
-            }
+            });
+        }
 
-            // --- 2. SENARYO: DİĞER TARİH SIRALAMALARI ---
-            var dateA, dateB;
-
-            // Ödünç Tarihi (Index 2)
-            if (selectedValue.includes("borrow")) {
-                dateA = new Date(rowA.cells[2].getAttribute("data-date"));
-                dateB = new Date(rowB.cells[2].getAttribute("data-date"));
-            }
-            // İade Tarihi (Index 3)
-            else if (selectedValue.includes("return")) {
-                // İade tarihi yoksa (9999) en sona veya başa atma mantığı
-                dateA = new Date(rowA.cells[3].getAttribute("data-date"));
-                dateB = new Date(rowB.cells[3].getAttribute("data-date"));
-            }
-
-            if (selectedValue.includes("desc")) {
-                return dateB - dateA;
-            } else {
-                return dateA - dateB;
-            }
-        });
-
-        tbody.innerHTML = "";
-        rows.forEach(function (row) {
-            tbody.appendChild(row);
-        });
-    }
-
-    // --- SİLME ONAY ---
+    // Silme İşlemi İçin SweetAlert
     function confirmDelete(id) {
         Swal.fire({
-            title: 'Emin misiniz?',
-            text: "Bu kayıt kalıcı olarak silinecek!",
+            title: 'Kayıt Silinecek',
+            text: "Bu işlem geri alınamaz!",
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
+            cancelButtonColor: '#6c757d',
             confirmButtonText: 'Evet, Sil',
             cancelButtonText: 'İptal'
         }).then((result) => {
@@ -178,25 +131,23 @@ else
         })
     }
 
-    // --- ARAMA ---
+    // Arama Tablosu Fonksiyonu
     function searchTable() {
-        var input = document.getElementById("searchInput");
-        var filter = input.value.toUpperCase();
-        var table = document.getElementById("borrowTable");
-        var tbody = table.querySelector("tbody");
-        var rows = tbody.getElementsByTagName("tr");
-
-        for (var i = 0; i < rows.length; i++) {
-            var tdBook = rows[i].getElementsByTagName("td")[0];
-            var tdUser = rows[i].getElementsByTagName("td")[1];
-
-            if (tdBook || tdUser) {
-                var txtBook = tdBook.textContent || tdBook.innerText;
-                var txtUser = tdUser.textContent || tdUser.innerText;
-                if (txtBook.toUpperCase().indexOf(filter) > -1 || txtUser.toUpperCase().indexOf(filter) > -1) {
-                    rows[i].style.display = "";
-                } else {
-                    rows[i].style.display = "none";
+        var input, filter, table, tr, td, i, txtValue;
+        input = document.getElementById("searchInput");
+        filter = input.value.toUpperCase();
+        table = document.getElementById("borrowTable");
+        tr = table.getElementsByTagName("tr");
+        for (i = 1; i < tr.length; i++) {
+            tr[i].style.display = "none";
+            td = tr[i].getElementsByTagName("td");
+            for (var j = 0; j < td.length; j++) {
+                if (td[j]) {
+                    txtValue = td[j].textContent || td[j].innerText;
+                    if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                        tr[i].style.display = "";
+                        break;
+                    }
                 }
             }
         }

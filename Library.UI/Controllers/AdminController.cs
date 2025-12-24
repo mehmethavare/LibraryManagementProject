@@ -11,7 +11,6 @@ namespace Library.UI.Controllers
     public class AdminController : Controller
     {
         private readonly HttpClient _httpClient;
-        // Resimler "api/" altında değil, kök dizin "Files/" altında olduğu için kök adresi ayrı tutuyoruz
         private readonly string _apiRootUrl = "https://localhost:7080/";
 
         public AdminController(IHttpClientFactory httpClientFactory)
@@ -34,29 +33,37 @@ namespace Library.UI.Controllers
             var model = new AdminDashboardViewModel();
 
             var bookTask = _httpClient.GetAsync("Books");
-            var userTask = _httpClient.GetAsync("Users");
+            var userCountTask = _httpClient.GetAsync("Users/total-active-count");
             var borrowTask = _httpClient.GetAsync("BorrowRecords");
             var requestTask = _httpClient.GetAsync("Requests");
 
-            await Task.WhenAll(bookTask, userTask, borrowTask, requestTask);
+            await Task.WhenAll(bookTask, userCountTask, borrowTask, requestTask);
 
             // 1. Kitap Sayısı
             if (bookTask.Result.IsSuccessStatusCode)
             {
                 var json = await bookTask.Result.Content.ReadAsStringAsync();
-                var list = JsonConvert.DeserializeObject<List<object>>(json);
-                model.TotalBooks = list?.Count ?? 0;
+
+                // BookViewModel yerine 'dynamic' kullanarak tip bağımlılığını kaldırıyoruz
+                var allBooks = JsonConvert.DeserializeObject<List<dynamic>>(json);
+
+                if (allBooks != null)
+                {
+                    model.TotalBooks = allBooks.Count;
+                }
             }
 
             // 2. Kullanıcı Sayısı
-            if (userTask.Result.IsSuccessStatusCode)
+            if (userCountTask.Result.IsSuccessStatusCode)
             {
-                var json = await userTask.Result.Content.ReadAsStringAsync();
-                var list = JsonConvert.DeserializeObject<List<object>>(json);
-                model.TotalUsers = list?.Count ?? 0;
+                var countJson = await userCountTask.Result.Content.ReadAsStringAsync();
+                if (int.TryParse(countJson, out int activeUserCount))
+                {
+                    model.TotalUsers = activeUserCount;
+                }
             }
 
-            // 3. AKTİF ÖDÜNÇLER (Resim URL Düzeltmesi Burada Yapılıyor)
+            // 3. AKTİF ÖDÜNÇLER
             if (borrowTask.Result.IsSuccessStatusCode)
             {
                 var json = await borrowTask.Result.Content.ReadAsStringAsync();
@@ -66,29 +73,37 @@ namespace Library.UI.Controllers
                 {
                     var activeList = allBorrows.Where(x => !x.IsReturned).ToList();
 
-                    // --- URL DÜZELTME DÖNGÜSÜ ---
                     foreach (var item in activeList)
                     {
-                        // Resim yolu var ama "http" ile başlamıyorsa (yani relative path ise: "Files/img.jpg")
                         if (!string.IsNullOrEmpty(item.CoverImageUrl) && !item.CoverImageUrl.StartsWith("http"))
                         {
-                            // Başına https://localhost:7080/ ekle
                             item.CoverImageUrl = _apiRootUrl + item.CoverImageUrl;
                         }
                     }
-                    // ----------------------------
 
                     model.ActiveBorrows = activeList.Count;
                     model.RecentActiveBorrows = activeList.OrderBy(x => x.BorrowDate).Take(5).ToList();
                 }
             }
-
-            // 4. İstekler
+            // 4. İstekler (Admin Dashboard için sadece bekleyenleri getirir)
             if (requestTask.Result.IsSuccessStatusCode)
             {
                 var json = await requestTask.Result.Content.ReadAsStringAsync();
+
+                // API'den gelen veriyi liste olarak karşıla
+                // Not: RequestListViewModel isminde hata alırsan AdminDashboardViewModel içindeki tip ile aynı yap.
                 var requests = JsonConvert.DeserializeObject<List<RequestListViewModel>>(json);
-                model.LatestRequests = requests?.OrderByDescending(r => r.CreatedAt).Take(5).ToList();
+
+                if (requests != null)
+                {
+                    // 🚨 FİLTRELEME: Zaten API'ye "dashboard-pending" eklediysen API filtrelenmiş yollayacaktır.
+                    // Ama garanti olsun dersen burada da Status == 0 (Pending) kontrolü yapabilirsin.
+                    model.LatestRequests = requests
+                        .Where(r => r.Status == 0) // Eğer Status enum/int ise 0 'Pending'dir.
+                        .OrderByDescending(r => r.CreatedAt)
+                        .Take(5)
+                        .ToList();
+                }
             }
 
             return View(model);

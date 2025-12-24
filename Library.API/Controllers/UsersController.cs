@@ -218,5 +218,18 @@ namespace Library.API.Controllers
                 warningCount = user.WarningCount
             });
         }
+        // 🔹 11) Toplam Aktif Kullanıcı Sayısını Getir (Admin Dashboard için)
+        // GET: /api/Users/total-active-count
+        [HttpGet("total-active-count")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetTotalActiveUsers()
+        {
+            // Yalnızca SİLİNMEMİŞ (IsDeleted == false) ve KİLİTLİ OLMAYAN (IsLocked == false) kullanıcıları say
+            var totalActiveUsers = await _context.Users
+                .Where(u => u.IsDeleted == false && u.IsLocked == false)
+                .CountAsync();
+
+            return Ok(totalActiveUsers);
+        }
     }
 }

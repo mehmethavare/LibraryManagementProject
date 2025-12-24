@@ -3,10 +3,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using System.Text;
 using System.Text.Json;
+using System.Net.Http.Headers;
 
 namespace Library.UI.Controllers
 {
-    // 🔥 ÖNEMLİ: AuthFilter (Kilitli Hesap Kontrolü) için BaseController'dan miras alıyoruz
     public class BorrowRecordsController : BaseController
     {
         private readonly IHttpClientFactory _httpFactory;
@@ -15,68 +15,71 @@ namespace Library.UI.Controllers
         public BorrowRecordsController(IHttpClientFactory httpFactory, IConfiguration config)
         {
             _httpFactory = httpFactory;
-            // API adresini Config'den al, yoksa varsayılanı kullan
             _baseUrl = config["ApiSettings:BaseUrl"] ?? "https://localhost:7080/api/";
             if (!_baseUrl.EndsWith("/")) _baseUrl += "/";
         }
 
-        // ============================================================
-        // INDEX (Listeleme)
-        // ============================================================
+        // LISTELEME (INDEX)
         public async Task<IActionResult> Index()
         {
             var role = HttpContext.Session.GetString("role");
             var userId = HttpContext.Session.GetInt32("userId");
 
             var http = _httpFactory.CreateClient();
-            AddJwt(http); // Token ekle (BaseController'dan gelir)
+            AddJwt(http);
 
+            // 1. Önce Ana Listeyi Çek (Tüm kayıtlar)
             string apiEndpoint;
-
-            // Rol tabanlı endpoint seçimi
             if (role == "admin")
-            {
-                // Admin: Herkesi gör
                 apiEndpoint = _baseUrl + "BorrowRecords";
-            }
             else if (role == "user" && userId.HasValue)
-            {
-                // User: Sadece kendini gör
                 apiEndpoint = _baseUrl + "BorrowRecords/me/history";
-            }
             else
-            {
-                TempData["ErrorMessage"] = "Oturum bilgileri eksik. Lütfen tekrar giriş yapın.";
                 return RedirectToAction("Index", "Login");
-            }
 
             var response = await http.GetAsync(apiEndpoint);
+            var mainList = new List<BorrowRecordListViewModel>();
 
-            if (!response.IsSuccessStatusCode)
+            if (response.IsSuccessStatusCode)
             {
-                TempData["ErrorMessage"] = $"Liste yüklenemedi. Kod: {(int)response.StatusCode}";
-                return View(new List<BorrowRecordListViewModel>());
+                var json = await response.Content.ReadAsStringAsync();
+                mainList = JsonSerializer.Deserialize<List<BorrowRecordListViewModel>>(json,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+                    ?? new List<BorrowRecordListViewModel>();
             }
 
-            var json = await response.Content.ReadAsStringAsync();
-
-            try
+            // Index metodu içindeki role == "admin" bloğunun içini şu şekilde güncelleyin:
+            if (role == "admin")
             {
-                var list = JsonSerializer.Deserialize<List<BorrowRecordListViewModel>>(json,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                // Bekleyen talepleri çek
+                var pendingResponse = await http.GetAsync(_baseUrl + "BorrowRecords/return-requests/pending");
+                // Reddedilen talepleri de çek (Eğer API'nizde böyle bir endpoint varsa)
+                // Yoksa bile API'den gelen mainList içindeki ReturnRequestStatus zaten 3 ise View bunu gösterecektir.
 
-                return View(list ?? new List<BorrowRecordListViewModel>());
+                if (pendingResponse.IsSuccessStatusCode)
+                {
+                    var jsonPending = await pendingResponse.Content.ReadAsStringAsync();
+                    var pendingList = JsonSerializer.Deserialize<List<BorrowRecordListViewModel>>(jsonPending,
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                    if (pendingList != null)
+                    {
+                        var pendingIds = pendingList.Select(x => x.Id).ToHashSet();
+                        foreach (var item in mainList)
+                        {
+                            if (pendingIds.Contains(item.Id))
+                            {
+                                item.ReturnRequestStatus = 1; // Bekliyor
+                            }
+                        }
+                    }
+                }
             }
-            catch
-            {
-                TempData["ErrorMessage"] = "Veri işlenirken hata oluştu.";
-                return View(new List<BorrowRecordListViewModel>());
-            }
+
+            return View(mainList);
         }
 
-        // ============================================================
-        // CREATE (POST) - Ödünç Alma
-        // ============================================================
+        // ÖDÜNÇ ALMA (CREATE)
         [HttpPost]
         public async Task<IActionResult> Create(int bookId)
         {
@@ -97,79 +100,91 @@ namespace Library.UI.Controllers
             var response = await http.PostAsync(_baseUrl + "BorrowRecords", content);
 
             if (response.IsSuccessStatusCode)
-            {
                 TempData["SuccessMessage"] = "✅ Kitap başarıyla ödünç alındı.";
-            }
             else
-            {
-                var errorDetail = await response.Content.ReadAsStringAsync();
-
-                // Kullanıcı dostu hata mesajı
-                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest &&
-                    errorDetail.Contains("currently borrowed", StringComparison.OrdinalIgnoreCase))
-                {
-                    TempData["ErrorMessage"] = "❌ Bu kitap şu anda başkası tarafından alınmış.";
-                }
-                else
-                {
-                    TempData["ErrorMessage"] = "❌ Ödünç alma başarısız oldu.";
-                }
-            }
+                TempData["ErrorMessage"] = "❌ Ödünç alma başarısız oldu.";
 
             return RedirectToAction("Index", "Books");
         }
 
         // ============================================================
-        // RETURN (POST) - İade ve Kırmızı Alarm Kontrolü
+        // YENİ AKIŞ: İADE İŞLEMLERİ
         // ============================================================
-        [HttpPost]
-        public async Task<IActionResult> ReturnBook(int id, string dueDateStr)
-        {
-            // NOT: Tarihi string olarak alıyoruz (yyyy-MM-dd HH:mm:ss formatında gelmeli)
-            // Bu sayede View ile Controller arasındaki format uyuşmazlığını önlüyoruz.
 
+        // 1. KULLANICI: İade Talebi Oluştur (User -> Request)
+        [HttpPost]
+        public async Task<IActionResult> RequestReturn(int id)
+        {
             var http = _httpFactory.CreateClient();
             AddJwt(http);
 
-            // 1. Tarihi Parse Et
-            DateTime dueDate;
-            bool isDateValid = DateTime.TryParse(dueDateStr, out dueDate);
-
-            // 2. API'ye İade İsteği At
-            var response = await http.PutAsync(_baseUrl + $"BorrowRecords/return/{id}", null);
+            // API Endpoint: POST api/BorrowRecords/{id}/return-request
+            var response = await http.PostAsync(_baseUrl + $"BorrowRecords/{id}/return-request", null);
 
             if (response.IsSuccessStatusCode)
             {
-                // 3. GEÇ İADE KONTROLÜ
-                // Eğer tarih geçerliyse VE Şu an > Teslim Tarihi ise -> GEÇ KALINDI
-                if (isDateValid && DateTime.Now > dueDate)
-                {
-                    // 🚨 KIRMIZI ALARM (Layout'taki SweetAlert bunu yakalar)
-                    TempData["LateReturnAlert"] = "<b>⚠️ GEÇ İADE TESPİT EDİLDİ!</b><br><br>" +
-                                                  "Kitabı süresi dolduktan sonra iade ettiniz.<br>" +
-                                                  "Uyarı puanınız arttırıldı. (3. uyarıda hesabınız kilitlenir).";
-                }
-                else
-                {
-                    // 🟢 YEŞİL MESAJ
-                    TempData["SuccessMessage"] = "Kitap zamanında iade edildi. Teşekkürler!";
-                }
+                TempData["SuccessMessage"] = "İade talebiniz alındı. Admin onayı bekleniyor.";
             }
             else
             {
-                string msg = "İade işlemi başarısız.";
-                if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
-                    msg = "❌ Yetkiniz yok.";
-
-                TempData["ErrorMessage"] = msg;
+                var msg = await response.Content.ReadAsStringAsync();
+                TempData["ErrorMessage"] = $"Talep oluşturulamadı: {msg}";
             }
 
             return RedirectToAction(nameof(Index));
         }
 
-        // ============================================================
-        // DELETE (POST) - Kayıt Silme
-        // ============================================================
+        // 2. ADMIN: İadeyi Onayla (Admin -> Approve)
+        [HttpPost]
+        public async Task<IActionResult> ApproveReturn(int id)
+        {
+            var role = HttpContext.Session.GetString("role");
+            if (role != "admin") return RedirectToAction("Index", "Login");
+
+            var http = _httpFactory.CreateClient();
+            AddJwt(http);
+
+            // API Endpoint: PUT api/BorrowRecords/{id}/approve-return
+            var response = await http.PutAsync(_baseUrl + $"BorrowRecords/{id}/approve-return", null);
+
+            if (response.IsSuccessStatusCode)
+            {
+                TempData["SuccessMessage"] = "İade onaylandı ve kitap teslim alındı.";
+            }
+            else
+            {
+                TempData["ErrorMessage"] = "Onaylama işlemi başarısız.";
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        // 3. ADMIN: İadeyi Reddet (Admin -> Reject)
+        [HttpPost]
+        public async Task<IActionResult> RejectReturn(int id)
+        {
+            var role = HttpContext.Session.GetString("role");
+            if (role != "admin") return RedirectToAction("Index", "Login");
+
+            var http = _httpFactory.CreateClient();
+            AddJwt(http);
+
+            // API Endpoint: PUT api/BorrowRecords/{id}/reject-return
+            var response = await http.PutAsync(_baseUrl + $"BorrowRecords/{id}/reject-return", null);
+
+            if (response.IsSuccessStatusCode)
+            {
+                TempData["SuccessMessage"] = "Talep reddedildi. Kullanıcıya ceza puanı işlendi.";
+            }
+            else
+            {
+                TempData["ErrorMessage"] = "Reddetme işlemi başarısız.";
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        // SİLME (DELETE)
         [HttpPost, ActionName("Delete")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
@@ -179,13 +194,10 @@ namespace Library.UI.Controllers
             var response = await http.DeleteAsync(_baseUrl + $"BorrowRecords/{id}");
 
             if (response.IsSuccessStatusCode)
-            {
-                TempData["SuccessMessage"] = "Kayıt başarıyla silindi.";
-            }
+                TempData["SuccessMessage"] = "Kayıt silindi.";
             else
-            {
-                TempData["ErrorMessage"] = "Silme işlemi başarısız. Yetkiniz olmayabilir.";
-            }
+                TempData["ErrorMessage"] = "Silme başarısız.";
+
             return RedirectToAction(nameof(Index));
         }
     }

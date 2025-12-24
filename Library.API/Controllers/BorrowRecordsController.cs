@@ -82,21 +82,27 @@ namespace Library.API.Controllers
         public async Task<IActionResult> GetMyHistory()
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdClaim))
-                return Unauthorized();
-
-            if (!int.TryParse(userIdClaim, out var currentUserId))
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var currentUserId))
                 return Unauthorized();
 
             var records = await _context.BorrowRecords
                 .Include(x => x.Book)
-                .Include(x => x.User)
                 .Where(x => x.UserId == currentUserId)
                 .OrderByDescending(x => x.BorrowDate)
+                .Select(x => new BorrowRecordListDto
+                {
+                    Id = x.Id,
+                    BookId = x.BookId, // 🚨 BURAYI EKLEDİM: Kitap ID bilgisini artık gönderiyoruz.
+                    BookTitle = x.Book.Title,
+                    BorrowDate = x.BorrowDate,
+                    ReturnDate = x.ReturnDate,
+                    IsReturned = x.IsReturned,
+                    CoverImageUrl = x.Book.CoverImageUrl,
+                    ReturnRequestStatus = (int)x.ReturnRequestStatus
+                })
                 .ToListAsync();
 
-            var result = _mapper.Map<List<BorrowRecordListDto>>(records);
-            return Ok(result);
+            return Ok(records);
         }
 
         // 🔹 5) Kitap ödünç alma (UserId TOKEN'dan geliyor)
@@ -247,7 +253,7 @@ namespace Library.API.Controllers
             });
         }
 
-        // 🔹 9) ADMIN: İade isteğini REDDEDER → kullanıcıya 1 uyarı yazılır
+        // 9) ADMIN: İade isteğini REDDEDER → kullanıcıya 1 uyarı yazılır
         // PUT: /api/BorrowRecords/{id}/reject-return
         [HttpPut("{id:int}/reject-return")]
         [Authorize(Roles = "Admin")]
@@ -255,6 +261,7 @@ namespace Library.API.Controllers
         {
             var record = await _context.BorrowRecords
                 .Include(br => br.User)
+                .Include(br => br.Book) // Kitap durumunu güncellemek için Book'u da dahil ettik
                 .FirstOrDefaultAsync(br => br.Id == id);
 
             if (record == null)
@@ -269,17 +276,30 @@ namespace Library.API.Controllers
             if (record.User == null)
                 return BadRequest("User not loaded for this record.");
 
-            // İade isteği reddedildi
+            // 1. İade talebi statüsü 'Rejected' (Reddedildi/Kusurlu) olarak işaretlenir
             record.ReturnRequestStatus = ReturnRequestStatus.Rejected;
 
-            // Ortak ceza sistemi: WarningCount / IsLocked / IsDeleted
+            // 2. Kullanıcıya hasardan dolayı ceza puanı verilir
             ApplyWarning(record.User);
+
+            // 3. KRİTİK GÜNCELLEME: Kitap fiziksel olarak teslim alındığı için süre durdurulur.
+            // Böylece kullanıcı ayrıca gecikme cezası almaz.
+            record.IsReturned = true;
+            record.ReturnDate = DateTime.Now;
+
+            // 4. Kitabı sistemde tekrar 'Müsait' (veya kütüphanede) durumuna çekiyoruz
+            if (record.Book != null)
+            {
+                record.Book.Status = BookStatus.Available;
+                // Eğer Book entity'nizde 'ReturnedAt' alanı varsa:
+                // record.Book.ReturnedAt = DateTime.Now;
+            }
 
             await _context.SaveChangesAsync();
 
             return Ok(new
             {
-                message = "İade isteği reddedildi. Kullanıcıya 1 uyarı yazıldı."
+                message = "İade isteği reddedildi (hasar uyarısı verildi). Ancak kitap teslim alındığı için süre durduruldu ve işlem kapatıldı."
             });
         }
 

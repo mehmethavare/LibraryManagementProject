@@ -3,62 +3,117 @@
 
 @if (!Model.Any())
 {
-    <div class="alert alert-info mt-3">Henüz ödünç aldığınız bir kitap bulunmamaktadır.</div>
+    <div class="alert alert-info mt-3 shadow-sm">
+        <i class="fa-solid fa-circle-info me-2"></i>Henüz ödünç aldığınız bir kitap bulunmamaktadır.
+    </div>
 }
 else
 {
-    <table class="table table-striped table-hover mt-3">
+    <table class="table table-striped table-hover mt-3 align-middle shadow-sm">
         <thead class="table-primary">
             <tr>
-                <th>Kitap Adı</th>
+                <th>Kitap Bilgisi</th>
                 <th>Ödünç Tarihi</th>
-                <th>İade Durumu / Tarihi</th>
+                <th>Durum / Son Tarih</th>
+                <th class="text-end pe-3">İşlem</th>
             </tr>
         </thead>
         <tbody>
             @foreach (var item in Model.OrderByDescending(x => x.BorrowDate))
             {
-                // API değiştirmeden UI tarafında gecikme kontrolü
+                // UI tarafında gecikme kontrolü
                 bool isOverdue = !item.IsReturned && item.ReturnDate.HasValue && item.ReturnDate.Value < DateTime.Now;
 
                 <tr class="@(isOverdue ? "table-danger" : "")">
                     <td>
-                        <span class="fw-bold">@item.BookTitle</span>
-
-                        @if (isOverdue)
-                        {
-                            <span class="badge bg-danger ms-2 blink-animation">
-                                <i class="fa-solid fa-triangle-exclamation"></i> GECİKTİ
-                            </span>
-                        }
+                        <div class="d-flex flex-column">
+                            <span class="fw-bold text-dark">@item.BookTitle</span>
+                            @if (isOverdue)
+                            {
+                                <span class="badge bg-danger mt-1 blink-animation" style="width: fit-content;">
+                                    <i class="fa-solid fa-triangle-exclamation me-1"></i> GECİKTİ
+                                </span>
+                            }
+                        </div>
                     </td>
                     <td>@item.BorrowDate.ToShortDateString()</td>
                     <td>
                         @if (item.IsReturned)
                         {
-                            <span class="badge bg-success me-1">İade Edildi</span>
-                            @if (item.ReturnDate.HasValue)
+                            <div class="d-flex flex-column">
+                                <span class="badge bg-success" style="width: fit-content;">İade Edildi</span>
+                                @if (item.ReturnDate.HasValue)
+                                {
+                                    <small class="text-muted mt-1">(@item.ReturnDate.Value.ToShortDateString())</small>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            @if (item.ReturnRequestStatus == 1) // Onay Bekliyor
                             {
-                                <span class="text-muted small">(@item.ReturnDate.Value.ToShortDateString())</span>
+                                <span class="badge bg-warning text-dark">
+                                    <i class="fa-solid fa-hourglass-half me-1"></i> Onay Bekliyor
+                                </span>
+                            }
+                            else if (item.ReturnRequestStatus == 3) // Reddedildi
+                            {
+                                <div class="d-flex flex-column">
+                                    <span class="badge bg-danger">
+                                        <i class="fa-solid fa-circle-xmark me-1"></i> Reddedildi!
+                                    </span>
+                                    <small class="text-danger fw-bold" style="font-size:0.75rem;">Lütfen kütüphaneye gidiniz.</small>
+                                </div>
+                            }
+                            else // Kullanıcıda (Normal Durum)
+                            {
+                                <div class="d-flex flex-column">
+                                    <span class="badge bg-info text-dark" style="width: fit-content;">Sizde</span>
+                                    @if (item.ReturnDate.HasValue)
+                                    {
+                                        <small class="text-muted mt-1 @(isOverdue ? "text-danger fw-bold" : "")">
+                                            (Son: @item.ReturnDate.Value.ToShortDateString())
+                                        </small>
+                                    }
+                                </div>
+                            }
+                        }
+                    </td>
+                    <td class="text-end pe-3">
+                        @if (!item.IsReturned)
+                        {
+                            @* 1. DURUM: Onay Bekliyor (Buton Gizli, Bekleniyor yazısı) *@
+                            @if (item.ReturnRequestStatus == 1)
+                            {
+                                <button class="btn btn-sm btn-light text-muted disabled border">
+                                    <i class="fa-solid fa-clock me-1"></i> Bekleniyor
+                                </button>
+                            }
+                            @* 2. DURUM: Reddedildi (Buton TAMAMEN Gizli) *@
+                            else if (item.ReturnRequestStatus == 3)
+                            {
+                                @* Burayı boş bırakıyoruz veya küçük bir bilgilendirme yazıyoruz.
+                Böylece görseldeki o buton kaybolacaktır.
+                *@
+                                <span class="text-muted small italic">İşlem Kapalı</span>
+                            }
+                            @* 3. DURUM: Normal (Buton Aktif) *@
+                            else
+                            {
+                                <form asp-controller="BorrowRecords" asp-action="RequestReturn" method="post" id="return-form-@item.Id">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <button type="button" class="btn btn-sm btn-outline-primary fw-bold" onclick="confirmUserReturn('@item.Id')">
+                                        <i class="fa-solid fa-share-from-square me-1"></i> İade İste
+                                    </button>
+                                </form>
                             }
                         }
                         else
                         {
-                            @if (isOverdue)
-                            {
-                                <span class="badge bg-danger mb-1">Süresi Doldu!</span>
-                                <div class="small text-danger fw-bold">
-                                    <i class="fa-solid fa-clock"></i> Lütfen en kısa sürede iade ediniz.
-                                </div>
-                            }
-                            else
-                            {
-                                <span class="badge bg-warning text-dark me-1">Ödünç Alındı</span>
-                                @if (item.ReturnDate.HasValue)
-                                {
-                                    <span class="text-muted small">(Son Tarih: @item.ReturnDate.Value.ToShortDateString())</span>
-                                }
-                            }
+                            @* Kitap zaten iade edildiyse Değerlendir butonu *@
+                            <a asp-controller="Books" asp-action="Details" asp-route-id="@item.BookId" fragment="comment-section" class="btn btn-sm btn-outline-warning">
+                                <i class="fa-solid fa-star me-1"></i> Değerlendir
+                            </a>
                         }
                     </td>
                 </tr>
@@ -66,3 +121,16 @@ else
         </tbody>
     </table>
 }
+
+@* Yanıp sönen animasyon efekti için CSS *@
+<style>
+    .blink-animation {
+        animation: blinker 1.5s linear infinite;
+    }
+
+    @@keyframes blinker {
+        50% {
+            opacity: 0.3;
+        }
+    }
+</style>

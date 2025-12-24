@@ -4,12 +4,14 @@
     ViewData["Title"] = "Yönetici Paneli";
 }
 
+@* SweetAlert2 Kütüphanesi *@
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <h2 class="fw-bold mb-4">Yönetici Paneli</h2>
 <p class="text-muted">Kütüphanenin genel durum özeti ve acil eylemler</p>
 
 <div class="row mb-5">
-
-    @* KART 1: TOPLAM KİTAPLAR *@
+    @* --- İSTATİSTİK KARTLARI --- *@
     <div class="col-md-4 mb-3">
         <div class="card shadow-sm border-0 bg-primary text-white">
             <div class="card-body">
@@ -20,7 +22,6 @@
         </div>
     </div>
 
-    @* KART 2: TOPLAM KULLANICILAR *@
     <div class="col-md-4 mb-3">
         <div class="card shadow-sm border-0 bg-warning text-dark">
             <div class="card-body">
@@ -31,7 +32,6 @@
         </div>
     </div>
 
-    @* KART 3: AKTİF ÖDÜNÇ ALINANLAR *@
     <div class="col-md-4 mb-3">
         <div class="card shadow-sm border-0 bg-danger text-white">
             <div class="card-body">
@@ -41,7 +41,6 @@
             </div>
         </div>
     </div>
-
 </div>
 
 <div class="row mb-4">
@@ -60,7 +59,7 @@
                                 <th class="ps-3">Kitap Bilgisi</th>
                                 <th>Ödünç Alan</th>
                                 <th>Alınma Tarihi</th>
-                                <th class="text-end pe-3">İşlem</th>
+                                <th class="text-start ps-3">Durum / İşlem</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -68,46 +67,66 @@
                             {
                                 @foreach (var item in Model.RecentActiveBorrows)
                                 {
-                                    <tr>
-                                        <td class="ps-3">
-                                            <div class="d-flex align-items-center">
-
-                                                <span class="fw-bold text-dark">@item.BookTitle</span>
-                                            </div>
-                                        </td>
-
-                                        <td>
-                                            <i class="fa-regular fa-user me-1 text-muted"></i> @item.UserName
-                                        </td>
-
-                                        <td>
-                                            <span class="text-muted">@item.BorrowDate.ToString("dd.MM.yyyy")</span>
-                                            <br />
-                                            <small class="text-danger">
-                                                @((DateTime.Now - item.BorrowDate).Days) gün
-                                            </small>
-                                        </td>
-
-                                        <td class="text-end pe-3">
-                                            <form asp-controller="BorrowRecords" asp-action="ReturnBook" method="post" onsubmit="return confirm('Bu kitabı iade almak istiyor musunuz?');">
-                                                <input type="hidden" name="id" value="@item.Id" />
-                                                <input type="hidden" name="dueDateStr" value="@DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")" />
-
-                                                <button type="submit" class="btn btn-sm btn-outline-success">
-                                                    <i class="fa-solid fa-check me-1"></i> Teslim Al
-                                                </button>
-                                            </form>
-                                        </td>
-                                    </tr>
+                                            <tr>
+                                                <td class="ps-3">
+                                                    <div class="d-flex align-items-center">
+                                                @if (!string.IsNullOrEmpty(item.CoverImageUrl))
+                                                {
+                                                                <img src="@item.CoverImageUrl" alt="" style="width: 40px; height: 60px; object-fit: cover;" class="me-3 rounded shadow-sm">
+                                                }
+                                                        <span class="fw-bold text-dark">@item.BookTitle</span>
+                                                    </div>
+                                                </td>
+                                                <td><i class="fa-regular fa-user me-1 text-muted"></i> @item.UserName</td>
+                                                <td>
+                                                    <span class="text-muted">@item.BorrowDate.ToString("dd.MM.yyyy")</span>
+                                                    <br />
+                                                    <small class="text-danger">@((DateTime.Now - item.BorrowDate).Days) gün önce alındı</small>
+                                                </td>
+                                                <td class="text-start ps-3">
+                                            @if (item.IsReturned)
+                                            {
+                                                            <span class="badge bg-success px-3 py-2">Teslim Alındı</span>
+                                            }
+                                            else
+                                            {
+                                                @if (item.ReturnRequestStatus == 1)
+                                                {
+                                                                    <div class="d-flex justify-content-start gap-2">
+                                                                        <form asp-controller="BorrowRecords" asp-action="ApproveReturn" method="post" id="approve-form-@item.Id" style="display:inline;">
+                                                                            <input type="hidden" name="id" value="@item.Id" />
+                                                                            <button type="button" class="btn btn-sm btn-outline-success" onclick="confirmAction('@item.Id', 'approve')">
+                                                                                <i class="fa-solid fa-check me-1"></i> Onayla
+                                                                            </button>
+                                                                        </form>
+                                                                        <form asp-controller="BorrowRecords" asp-action="RejectReturn" method="post" id="reject-form-@item.Id" style="display:inline;">
+                                                                            <input type="hidden" name="id" value="@item.Id" />
+                                                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmAction('@item.Id', 'reject')">
+                                                                                <i class="fa-solid fa-xmark me-1"></i> Reddet
+                                                                            </button>
+                                                                        </form>
+                                                                    </div>
+                                                }
+                                                else if (item.ReturnRequestStatus == 3)
+                                                {
+                                                                    <span class="badge bg-danger px-3 py-2 shadow-sm">
+                                                                        <i class="fa-solid fa-circle-xmark me-1"></i> İade Reddedildi
+                                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                                    <span class="badge bg-light text-primary border border-primary-subtle px-3 py-2">
+                                                                        <i class="fa-solid fa-user-clock me-1"></i> Kullanıcıda
+                                                                    </span>
+                                                }
+                                            }
+                                                </td>
+                                            </tr>
                                 }
                             }
                             else
                             {
-                                <tr>
-                                    <td colspan="4" class="text-center py-4 text-muted">
-                                        Şu an aktif ödünç kaydı bulunmuyor.
-                                    </td>
-                                </tr>
+                                    <tr><td colspan="4" class="text-center py-4 text-muted">Şu an aktif ödünç kaydı bulunmuyor.</td></tr>
                             }
                         </tbody>
                     </table>
@@ -120,30 +139,59 @@
 <div class="row">
     <div class="col-lg-12">
         <div class="card shadow-sm border-0">
-            <div class="card-header bg-light fw-bold">
-                <i class="fa-solid fa-list-check me-2"></i> Son İstekler
+            <div class="card-header bg-light fw-bold text-primary">
+                <i class="fa-solid fa-bell me-2"></i> Yanıt Bekleyen İstekler
             </div>
             <div class="card-body p-0">
                 @if (Model.LatestRequests != null && Model.LatestRequests.Any())
                 {
-                    <ul class="list-group list-group-flush">
+                        <ul class="list-group list-group-flush">
                         @foreach (var request in Model.LatestRequests)
                         {
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="mb-1">@request.Title</h6>
-                                    <small class="text-muted">@request.UserName tarafından, @request.CreatedAt.ToString("dd.MM.yyyy")</small>
-                                </div>
-                                <a asp-controller="UserRequests" asp-action="Index" class="btn btn-sm btn-outline-primary">İncele</a>
-                            </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1 fw-bold">@request.Title</h6>
+                                            <small class="text-muted">@request.UserName tarafından, @request.CreatedAt.ToString("dd.MM.yyyy")</small>
+                                        </div>
+                                        <a asp-controller="UserRequests" asp-action="Index" class="btn btn-sm btn-primary shadow-sm">
+                                            <i class="fa-solid fa-reply me-1"></i> Yanıtla
+                                        </a>
+                                    </li>
                         }
-                    </ul>
+                        </ul>
                 }
                 else
-                {
-                    <p class="p-3 text-muted mb-0">Henüz yeni istek yok.</p>
+                { 
+                        <div class="p-4 text-center">
+                            <i class="fa-solid fa-circle-check fa-3x text-success mb-3 opacity-25"></i>
+                            <p class="text-muted mb-0">Yanıtlanması gereken yeni bir istek bulunmuyor.</p> 
+                        </div>
                 }
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    function confirmAction(id, type) {
+        const isApprove = type === 'approve';
+        Swal.fire({
+            title: isApprove ? 'İadeyi Onayla' : 'İadeyi Reddet',
+            text: isApprove ? "Kitabı teslim aldığınızı onaylıyor musunuz?" : "İade talebi reddedilecek. Emin misiniz?",
+            icon: isApprove ? 'success' : 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#6c757d', // Vazgeç butonu Gri
+            cancelButtonColor: isApprove ? '#198754' : '#dc3545', // Evet butonu Yeşil/Kırmızı
+            confirmButtonText: 'Vazgeç',
+            cancelButtonText: 'Evet',
+            reverseButtons: true
+        }).then((result) => {
+            // "Evet" (cancel konumu) butonuna basıldığında form gönderilir
+            if (result.dismiss === Swal.DismissReason.cancel) {
+                const formId = (isApprove ? 'approve-form-' : 'reject-form-') + id;
+                const form = document.getElementById(formId);
+                if (form) form.submit();
+            }
+        });
+    }
+</script>

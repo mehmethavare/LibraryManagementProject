@@ -13,7 +13,6 @@
         </a>
     </div>
 
-    @* SweetError mesajları *@
     @if (TempData["SweetError"] != null)
     {
         <div class="alert alert-warning">
@@ -40,14 +39,11 @@
                         @foreach (var item in Model)
                         {
                             <tr>
-                                @* 🚨 KULLANICI BİLGİLERİ (Boş kalan kısımlar dolduruldu) *@
                                 <td class="ps-4 fw-bold">@item.Name</td>
                                 <td>@item.Surname</td>
                                 <td>@item.Email</td>
                                 <td>@item.PhoneNumber</td>
-
                                 <td>
-                                    @* Durum / Rol Gösterimi *@
                                     @if (item.IsDeleted)
                                     {
                                         <span class="badge bg-dark">Silinmiş Hesap</span>
@@ -66,19 +62,16 @@
 
                                 <td class="text-end pe-4">
                                     <div class="d-flex justify-content-end gap-2">
-
-                                        @* 🔓 KİLİT AÇMA BUTONU: IsLocked VEYA IsDeleted ise gösterilir *@
                                         @if (item.IsLocked && !item.IsDeleted)
                                         {
-                                            <form asp-action="Unlock" asp-route-id="@item.Id" method="post" class="d-inline">
-                                                <button type="submit" class="btn btn-sm btn-success" title="Kilidi Kaldır/Hesabı Aç"
-                                                        onclick="return confirm('@item.Name @item.Surname' kullanıcısının kilidi kaldırılsın mı? Uyarı sayacı sıfırlanacaktır.');">
+                                            <form asp-action="Unlock" asp-route-id="@item.Id" method="post" id="unlock-form-@item.Id" class="d-inline">
+                                                <button type="button" class="btn btn-sm btn-success" title="Kilidi Kaldır"
+                                                        onclick="confirmUnlock('@item.Id', '@item.Name @item.Surname')">
                                                     <i class="fa-solid fa-lock-open"></i> Aç
                                                 </button>
                                             </form>
                                         }
 
-                                        @* ⚙️ Standart İşlemler: Sadece kilitli DEĞİLSE ve Silinmiş DEĞİLSE gösterilir *@
                                         @if (!item.IsLocked && !item.IsDeleted)
                                         {
                                             <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-info" title="Detaylar">
@@ -89,26 +82,17 @@
                                                 <i class="fa-solid fa-pen"></i>
                                             </a>
 
-                                            <form asp-action="Delete" asp-route-id="@item.Id" method="post" onsubmit="return confirm('Bu kullanıcıyı silmek istediğinize emin misiniz?');">
-                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Sil">
+                                            <form asp-action="Delete" asp-route-id="@item.Id" method="post" id="delete-form-@item.Id" class="d-inline">
+                                                <button type="button" class="btn btn-sm btn-outline-danger" title="Sil"
+                                                        onclick="confirmDelete('@item.Id', '@item.Name @item.Surname')">
                                                     <i class="fa-solid fa-trash"></i>
                                                 </button>
                                             </form>
                                         }
-
                                     </div>
                                 </td>
                             </tr>
                         }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">
-                                <i class="fa-solid fa-users-slash fa-2x mb-3"></i><br>
-                                Sistemde kayıtlı kullanıcı bulunamadı.
-                            </td>
-                        </tr>
                     }
                 </tbody>
             </table>
@@ -116,39 +100,49 @@
     </div>
 </div>
 
+<script>
+    // SİLME ONAYI
+    function confirmDelete(id, userName) {
+        Swal.fire({
+            title: 'Emin misiniz?',
+            text: userName + " kullanıcısını silmek istediğinize emin misiniz?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Evet, Sil!',
+            cancelButtonText: 'Vazgeç'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById('delete-form-' + id).submit();
+            }
+        })
+    }
+
+    // KİLİT AÇMA ONAYI
+    function confirmUnlock(id, userName) {
+        Swal.fire({
+            title: 'Kilidi Aç?',
+            text: userName + " kullanıcısının hesabı tekrar aktif edilsin mi?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#198754',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Evet, Kilidi Aç!',
+            cancelButtonText: 'Vazgeç'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById('unlock-form-' + id).submit();
+            }
+        })
+    }
+</script>
+
 @if (TempData["Success"] != null)
 {
-    <script>
-        Swal.fire({
-            icon: 'success',
-            title: 'Başarılı!',
-          html: '@Html.Raw(TempData["Success"])',
-            confirmButtonColor: '#3085d6',
-            timer: 3000
-        });
-    </script>
+    <script>Swal.fire({ icon: 'success', title: 'Başarılı!', html: '@Html.Raw(TempData["Success"])', timer: 3000 });</script>
 }
 @if (TempData["Error"] != null)
 {
-    <script>
-        Swal.fire({
-            icon: 'error',
-            title: 'Hata!',
-            html: '@Html.Raw(TempData["Error"])',
-            confirmButtonColor: '#d33'
-        });
-    </script>
-}
-
-@if (TempData["SweetError"] != null)
-{
-    <script>
-        Swal.fire({
-            icon: 'warning',
-            title: 'İşlem Engellendi',
-            html: '@Html.Raw(TempData["SweetError"])',
-            confirmButtonColor: '#d33',
-            confirmButtonText: 'Tamam, Anlaşıldı'
-        });
-    </script>
+    <script>Swal.fire({ icon: 'error', title: 'Hata!', html: '@Html.Raw(TempData["Error"])', confirmButtonColor: '#d33' });</script>
 }

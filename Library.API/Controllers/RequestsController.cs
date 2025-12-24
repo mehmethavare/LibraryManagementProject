@@ -187,5 +187,21 @@ namespace Library.API.Controllers
             await _context.SaveChangesAsync();
             return NoContent();
         }
+        // 🔹 6) Admin Dashboard: Sadece yanıtlanmamış (Pending) son 5 isteği getir
+        // GET: /api/Requests/dashboard-pending
+        [HttpGet("dashboard-pending")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetDashboardPending()
+        {
+            var requests = await _context.UserRequests
+                .Include(r => r.User)
+                .Where(r => r.Status == RequestStatus.Pending) // Sadece yanıt bekleyenler
+                .OrderByDescending(r => r.CreatedAt)
+                .Take(5) // Son 5 kayıt
+                .ToListAsync();
+
+            var result = _mapper.Map<List<RequestListDto>>(requests);
+            return Ok(result);
+        }
     }
 }

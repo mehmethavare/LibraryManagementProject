@@ -3,9 +3,11 @@
 
 @{
     ViewData["Title"] = "Kitaplar";
-    // Kullanıcı rolünü session'dan alıyoruz
     var userRole = Context.Session.GetString("role");
 }
+
+@* SweetAlert2 Kütüphanesi *@
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <div class="container mt-4">
 
@@ -78,8 +80,6 @@
                 <div class="col">
                     <div class="card h-100 border-0 shadow-sm hover-up">
 
-                        @* --- GÖRSEL ALANI (GÜNCELLENDİ) --- *@
-                        @* Yükseklik 300px yapıldı, resim contain moduna alındı *@
                         <div class="position-relative bg-light text-center overflow-hidden rounded-top" style="height: 300px;">
                             @if (!string.IsNullOrEmpty(book.CoverImageUrl))
                             {
@@ -96,7 +96,6 @@
                                 </div>
                             }
 
-                            @* Durum Rozeti (Müsait / Ödünç Alındı) *@
                             <div class="position-absolute bottom-0 start-0 w-100 p-2 text-start" style="background: linear-gradient(to top, rgba(0,0,0,0.6), transparent);">
                                 @if (book.IsAvailable)
                                 {
@@ -112,13 +111,14 @@
                                 }
                             </div>
 
-                            @* HIZLI ÖDÜNÇ ALMA BUTONU (Sadece User ve Müsait Kitaplar için) *@
+                            @* --- USER: MODERN ONAYLI ÖDÜNÇ ALMA --- *@
                             @if (userRole != "admin" && book.IsAvailable)
                             {
                                 <div class="position-absolute top-0 end-0 m-2">
-                                    <form asp-controller="BorrowRecords" asp-action="Create" method="post" style="display:inline;">
+                                    <form asp-controller="BorrowRecords" asp-action="Create" method="post" id="borrow-form-@book.Id" style="display:inline;">
                                         <input type="hidden" name="bookId" value="@book.Id" />
-                                        <button type="submit" class="btn btn-success btn-sm rounded-circle shadow"
+                                        <button type="button" class="btn btn-success btn-sm rounded-circle shadow"
+                                                onclick="confirmBorrow('@book.Id', '@book.Title')"
                                                 style="width: 40px; height: 40px; padding: 0;" title="Hemen Ödünç Al">
                                             <i class="fa-solid fa-plus fa-lg"></i>
                                         </button>
@@ -127,7 +127,6 @@
                             }
                         </div>
 
-                        @* --- KART GÖVDESİ --- *@
                         <div class="card-body d-flex flex-column pt-3">
                             <h6 class="card-title fw-bold text-dark text-truncate" title="@book.Title">
                                 @book.Title
@@ -137,7 +136,6 @@
                             </p>
 
                             <div class="mt-auto">
-                                @* ROL KONTROLÜ VE BUTONLAR *@
                                 @if (userRole == "admin")
                                 {
                                     <div class="d-flex justify-content-between gap-1">
@@ -145,8 +143,9 @@
                                             <i class="fa-solid fa-pen-to-square"></i> Düzenle
                                         </a>
 
-                                        <form asp-action="Delete" asp-route-id="@book.Id" method="post" style="display:inline;" onsubmit="return confirm('Bu kitabı kalıcı olarak silmek istediğinizden emin misiniz?');">
-                                            <button type="submit" class="btn btn-danger btn-sm">
+                                        @* --- ADMIN: MODERN ONAYLI SİLME --- *@
+                                        <form asp-action="Delete" asp-route-id="@book.Id" method="post" id="delete-form-@book.Id" style="display:inline;">
+                                            <button type="button" class="btn btn-danger btn-sm" onclick="confirmDelete('@book.Id', '@book.Title')">
                                                 <i class="fa-solid fa-trash-can"></i>
                                             </button>
                                         </form>
@@ -167,7 +166,45 @@
     }
 </div>
 
-@* --- CSS --- *@
+@* --- MODER POPUP SCRİPTLERİ --- *@
+<script>
+    // Kullanıcı için Ödünç Alma Onayı
+    function confirmBorrow(id, title) {
+        Swal.fire({
+            title: 'Ödünç Almak İstiyor musunuz?',
+            text: '"' + title + '" kitabını ödünç alma listenize ekleyeceksiniz.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#198754',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Evet, Alıyorum',
+            cancelButtonText: 'Vazgeç'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById('borrow-form-' + id).submit();
+            }
+        });
+    }
+
+    // Admin için Silme Onayı
+    function confirmDelete(id, title) {
+        Swal.fire({
+            title: 'Kitabı Sil?',
+            text: '"' + title + '" kitabı kalıcı olarak silinecek. Emin misiniz?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Evet, Sil!',
+            cancelButtonText: 'Vazgeç'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById('delete-form-' + id).submit();
+            }
+        });
+    }
+</script>
+
 <style>
     .hover-up {
         transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -178,7 +215,6 @@
             box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
         }
 
-            /* Resim üzerine gelince hafif büyüme efekti (Opsiyonel) */
             .hover-up:hover img {
                 transform: scale(1.05);
             }

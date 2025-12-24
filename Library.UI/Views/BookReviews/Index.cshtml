@@ -8,6 +8,20 @@
     int.TryParse(currentUserIdString, out int currentUserId);
 }
 
+@* 1. SweetAlert2 Kütüphanesi Eklendi *@
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<style>
+    /* 2. Taşmayı Engelleyen ve Metni Bölen CSS */
+    .wrapped-comment {
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+        word-break: break-all !important; /* SONNNNN... gibi birleşik metinleri zorla böler */
+        white-space: normal !important;
+        min-width: 150px;
+    }
+</style>
+
 <div class="container mt-4">
     <div class="card shadow-sm border-0">
         <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
@@ -26,19 +40,11 @@
         </div>
 
         <div class="card-body">
-
             @* Başarı/Hata Mesajları *@
             @if (TempData["Success"] != null)
             {
                 <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
                     <i class="fa-solid fa-check-circle me-2"></i> @Html.Raw(TempData["Success"])
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
-                </div>
-            }
-            @if (TempData["Error"] != null)
-            {
-                <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
-                    <i class="fa-solid fa-triangle-exclamation me-2"></i> @Html.Raw(TempData["Error"])
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
                 </div>
             }
@@ -69,9 +75,6 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @* Varsayılan olarak Server tarafında da en iyi sıralamayla gelsin.
-                               Ayrıca JS için data-rating ve data-date ekliyoruz.
-                            *@
                             @foreach (var item in Model.OrderByDescending(x => x.Rating).ThenByDescending(x => x.CreatedAt))
                             {
                                 <tr data-rating="@item.Rating" data-date="@item.CreatedAt.Ticks">
@@ -97,21 +100,29 @@
                                         <div class="text-warning small">
                                             @for (int i = 1; i <= 5; i++)
                                             {
-                                                if (item.Rating >= i)
-                                                {
-                                                    <i class="fa-solid fa-star"></i>
-                                                }
-                                                else
-                                                {
-                                                    <i class="fa-regular fa-star text-muted opacity-25"></i>
-                                                }
+                                                if (item.Rating >= i) { <i class="fa-solid fa-star"></i> }
+                                                else { <i class="fa-regular fa-star text-muted opacity-25"></i> }
                                             }
                                             <span class="text-muted ms-1" style="font-size:0.8em">(@item.Rating)</span>
                                         </div>
                                     </td>
 
                                     <td>
-                                        <span class="text-secondary small">@item.Comment</span>
+                                        @* 3. Yorum Alanına 'wrapped-comment' sınıfı ve 'Tamamını Oku' eklendi *@
+                                        <div class="wrapped-comment text-secondary small">
+                                            @if (!string.IsNullOrEmpty(item.Comment) && item.Comment.Length > 80)
+                                            {
+                                                <span>@item.Comment.Substring(0, 80)...</span>
+                                                <button type="button" class="btn btn-link btn-sm p-0 ms-1 fw-bold text-primary" 
+                                                        onclick="showFullReview('@item.Comment.Replace("'", "\\'").Replace("\r\n", " ").Replace("\n", " ")')">
+                                                    Tamamını Oku
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                @item.Comment
+                                            }
+                                        </div>
                                     </td>
 
                                     <td class="text-muted small">
@@ -120,9 +131,7 @@
 
                                     <td class="text-end">
                                         <div class="d-flex justify-content-end gap-2">
-                                            @{
-                                                var isCurrentUserOwner = item.UserId == currentUserId;
-                                            }
+                                            @{ var isCurrentUserOwner = item.UserId == currentUserId; }
 
                                             @if (userRole != "admin" && isCurrentUserOwner)
                                             {
@@ -130,8 +139,8 @@
                                                     <i class="fa-solid fa-pen"></i>
                                                 </a>
 
-                                                <form asp-action="Delete" asp-route-id="@item.Id" method="post" onsubmit="return confirm('Bu yorumu silmek istediğinize emin misiniz?');">
-                                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Sil">
+                                                <form asp-action="Delete" asp-route-id="@item.Id" method="post" id="delete-form-@item.Id">
+                                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="confirmDelete('@item.Id')">
                                                         <i class="fa-solid fa-trash"></i>
                                                     </button>
                                                 </form>
@@ -139,8 +148,8 @@
 
                                             @if (userRole == "admin")
                                             {
-                                                <form asp-action="Delete" asp-route-id="@item.Id" method="post" onsubmit="return confirm('Yönetici olarak bu yorumu silmek istediğinize emin misiniz?');">
-                                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Sil (Yönetici)">
+                                                <form asp-action="Delete" asp-route-id="@item.Id" method="post" id="delete-form-@item.Id">
+                                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="confirmDelete('@item.Id', true)">
                                                         <i class="fa-solid fa-trash"></i>
                                                     </button>
                                                 </form>
@@ -158,38 +167,58 @@
 </div>
 
 <script>
+    // 4. Modern Silme Onayı
+    function confirmDelete(id, isAdmin = false) {
+        Swal.fire({
+            title: 'Emin misiniz?',
+            text: isAdmin ? "Yönetici olarak bu yorumu kalıcı olarak sileceksiniz!" : "Bu yorumu silmek istediğinize emin misiniz?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Evet, Sil',
+            cancelButtonText: 'Vazgeç'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById('delete-form-' + id).submit();
+            }
+        });
+    }
+
+    // 5. Tamamını Oku Popup
+    function showFullReview(fullText) {
+        Swal.fire({
+            title: 'Değerlendirme Detayı',
+            html: `<div class="wrapped-comment" style="text-align:left; line-height:1.6;">${fullText}</div>`,
+            icon: 'info',
+            confirmButtonText: 'Kapat'
+        });
+    }
+
     function sortReviews() {
         var selectBox = document.getElementById("sortSelect");
         var selectedValue = selectBox.value;
-
         var table = document.getElementById("reviewsTable");
         var tbody = table.querySelector("tbody");
         var rows = Array.from(tbody.querySelectorAll("tr"));
 
         rows.sort(function (rowA, rowB) {
-            // Data attribute'larından değerleri al
             var ratingA = parseInt(rowA.getAttribute("data-rating"));
             var ratingB = parseInt(rowB.getAttribute("data-rating"));
-
-            var dateA = parseInt(rowA.getAttribute("data-date")); // Ticks kullandığımız için sayısal karşılaştırma yapabiliriz
+            var dateA = parseInt(rowA.getAttribute("data-date"));
             var dateB = parseInt(rowB.getAttribute("data-date"));
 
-            // 1. ÖNCELİK: PUAN (Her zaman yüksekten düşüğe)
             if (ratingA !== ratingB) {
-                return ratingB - ratingA; // Büyük olan üstte
+                return ratingB - ratingA;
             }
 
-            // 2. ÖNCELİK: TARİH (Seçime göre değişir)
             if (selectedValue === "newest") {
-                // Yeniden Eskiye (Büyük tarih üstte)
                 return dateB - dateA;
             } else {
-                // Eskiden Yeniye (Küçük tarih üstte)
                 return dateA - dateB;
             }
         });
 
-        // Sıralanan satırları tabloya geri yükle
         tbody.innerHTML = "";
         rows.forEach(function (row) {
             tbody.appendChild(row);

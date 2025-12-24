@@ -3,22 +3,39 @@
 @{
     ViewData["Title"] = Model.Title;
     var userRole = Context.Session.GetString("role");
-    // Kullanıcı oturum bilgilerini alıyoruz
     var currentUserId = Context.Session.GetInt32("userId");
     var hasUserReviewed = false;
 
-    // Eğer kullanıcı giriş yapmışsa ve yorum listesi boş değilse, daha önce yorum yapıp yapmadığını kontrol et
     if (currentUserId.HasValue && Model.Reviews != null)
     {
         hasUserReviewed = Model.Reviews.Any(r => r.UserId == currentUserId.Value);
     }
 }
 
+@* 1. ADIM: Kütüphaneler *@
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+@* 2. ADIM: Stil Düzenlemeleri *@
+<style>
+    .review-comment-box {
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+        word-break: break-all !important;
+        white-space: normal !important;
+    }
+
+    .hover-shadow:hover {
+        transition: all 0.3s ease;
+        box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15) !important;
+    }
+</style>
+
 <div class="container mt-5 mb-5">
+    @* --- KİTAP ANA BİLGİ KARTI --- *@
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body p-0">
             <div class="row g-0">
-
+                @* Kitap Kapağı *@
                 <div class="col-md-4 bg-light text-center d-flex align-items-center justify-content-center p-4">
                     @if (!string.IsNullOrEmpty(Model.CoverImageUrl))
                     {
@@ -31,6 +48,7 @@
                     }
                 </div>
 
+                @* Kitap Detayları *@
                 <div class="col-md-8 p-4 p-lg-5">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
@@ -38,6 +56,7 @@
                             <h2 class="fw-bold mb-1">@Model.Title</h2>
                             <h5 class="text-muted"><i class="fa-solid fa-feather me-2"></i>@(Model.AuthorName ?? "Yazar Bilinmiyor")</h5>
 
+                            @* Ortak Özellik: Yayıncı Bilgisi *@
                             @if (!string.IsNullOrEmpty(Model.PublisherName))
                             {
                                 <h6 class="text-muted mt-2">
@@ -45,6 +64,7 @@
                                 </h6>
                             }
 
+                            @* Ortak Özellik: Raf Konumu *@
                             @if (!string.IsNullOrEmpty(Model.Location))
                             {
                                 <div class="mt-3">
@@ -55,12 +75,18 @@
                             }
                         </div>
 
+                        @* Admin İşlemleri *@
                         @if (userRole == "admin")
                         {
                             <div class="btn-group">
-                                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-warning"><i class="fa-solid fa-pen"></i></a>
-                                <form asp-action="Delete" asp-route-id="@Model.Id" method="post" onsubmit="return confirm('Silmek istediğinize emin misiniz?');" class="d-inline">
-                                    <button type="submit" class="btn btn-outline-danger" style="border-top-left-radius:0; border-bottom-left-radius:0;"><i class="fa-solid fa-trash"></i></button>
+                                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-warning" title="Düzenle">
+                                    <i class="fa-solid fa-pen"></i>
+                                </a>
+                                <form asp-action="Delete" asp-route-id="@Model.Id" method="post" id="delete-book-form-@Model.Id" class="d-inline">
+                                    <button type="button" class="btn btn-outline-danger" style="border-top-left-radius:0; border-bottom-left-radius:0;"
+                                            onclick="confirmDeleteBook('@Model.Id', '@Model.Title')">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
                                 </form>
                             </div>
                         }
@@ -75,7 +101,7 @@
                         </div>
                         <div class="col-6">
                             <small class="text-uppercase text-muted fw-bold">Ortalama Puan</small>
-                            <div class="text-warning">
+                            <div class="text-warning fs-5">
                                 @if (Model.AverageRating > 0)
                                 {
                                     <span>@Model.AverageRating.ToString("0.0")</span> <i class="fa-solid fa-star"></i>
@@ -88,34 +114,31 @@
                         </div>
                     </div>
 
-                    @* ======= KRİTİK DEĞİŞİKLİK BURADA BAŞLAR ======= *@
+                    @* Ödünç Alma Butonu *@
                     <div class="mt-auto">
                         @if (Model.IsAvailable)
                         {
-                            @* Tarayıcı uyarısı yerine Modalı açan buton *@
-                            <button type="button"
-                                    class="btn btn-success btn-lg px-5 w-100 w-md-auto"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#confirmBorrowModal"
-                                    data-book-id="@Model.Id"
-                                    data-book-title="@Model.Title">
+                            <button type="button" class="btn btn-success btn-lg px-5 w-100 w-md-auto shadow-sm"
+                                    data-bs-toggle="modal" data-bs-target="#confirmBorrowModal"
+                                    data-book-id="@Model.Id" data-book-title="@Model.Title">
                                 <i class="fa-solid fa-book-reader me-2"></i> Ödünç Al
                             </button>
                         }
                         else
                         {
                             <button class="btn btn-secondary btn-lg px-5 w-100 w-md-auto" disabled>
-                                <i class="fa-solid fa-lock me-2"></i> Ödünç Alındı
+                                <i class="fa-solid fa-lock me-2"></i> Ödünç Alındı (Stokta Yok)
                             </button>
                         }
                     </div>
-                    @* ======= KRİTİK DEĞİŞİKLİK BURADA BİTER ======= *@
                 </div>
             </div>
         </div>
     </div>
 
+    @* --- YORUMLAR VE PUAN VERME ALANI --- *@
     <div class="row mt-5">
+        @* Yorum Listesi *@
         <div class="col-lg-8">
             <h4 class="fw-bold mb-4">Okuyucu Yorumları (@(Model.Reviews?.Count ?? 0))</h4>
 
@@ -123,127 +146,206 @@
             {
                 foreach (var review in Model.Reviews)
                 {
-                    <div class="card mb-3 border-0 bg-white shadow-sm">
+                    <div class="card mb-3 border-0 bg-white shadow-sm overflow-hidden hover-shadow">
                         <div class="card-body">
                             <div class="d-flex justify-content-between mb-2">
                                 <h6 class="fw-bold mb-0">@review.UserName</h6>
-                                <small class="text-muted">@review.Date.ToString("dd.MM.yyyy")</small>
+                                <div class="d-flex align-items-center">
+                                    <small class="text-muted me-3">@review.Date.ToString("dd.MM.yyyy")</small>
+
+                                    @* Yorum Silme (Admin veya Yorum Sahibi) *@
+                                    @if (userRole == "admin" || (currentUserId.HasValue && review.UserId == currentUserId.Value))
+                                    {
+                                        <form asp-action="DeleteReview" asp-controller="Books" method="post" id="delete-review-@review.Id" style="display:inline;">
+                                            <input type="hidden" name="reviewId" value="@review.Id" />
+                                            <input type="hidden" name="bookId" value="@Model.Id" />
+                                            <button type="button" class="btn btn-link text-danger p-0 border-0" onclick="confirmDeleteReview('@review.Id')">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
                             </div>
+
+                            @* Yıldızlar *@
                             <div class="mb-2 text-warning small">
                                 @for (int i = 0; i < review.Rating; i++)
                                 {
                                     <i class="fa-solid fa-star"></i>
                                 }
+                                @for (int i = review.Rating; i < 5; i++)
+                                {
+                                    <i class="fa-regular fa-star"></i>
+                                }
                             </div>
-                            <p class="mb-0 text-secondary">@review.Comment</p>
+
+                            @* Yorum Metni *@
+                            <p class="mb-0 text-secondary review-comment-box">
+                                @if (!string.IsNullOrEmpty(review.Comment) && review.Comment.Length > 150)
+                                {
+                                    <span>@review.Comment.Substring(0, 150)...</span>
+                                    <button type="button" class="btn btn-link btn-sm p-0 ms-1 fw-bold"
+                                            onclick="showFullComment('@review.Comment.Replace("'", "\\'").Replace("\r\n", " ").Replace("\n", " ")')">
+                                        Tamamını Oku
+                                    </button>
+                                }
+                                else
+                                {
+                                    @review.Comment
+                                }
+                            </p>
                         </div>
                     </div>
                 }
             }
             else
             {
-                <p class="text-muted">Henüz yorum yapılmamış. İlk yorumu siz yapın!</p>
+                <div class="text-center py-5 bg-light rounded shadow-sm">
+                    <i class="fa-solid fa-comments fa-3x text-muted opacity-25 mb-3"></i>
+                    <p class="text-muted">Henüz yorum yapılmamış. İlk yorumu siz yapın!</p>
+                </div>
             }
         </div>
 
+        @* Puan Verme Formu *@
         <div class="col-lg-4 mt-4 mt-lg-0">
-            <div class="card border-0 shadow-sm bg-light">
-                <div class="card-body">
-                    <h5 class="fw-bold mb-3">Puan Ver</h5>
+            <div class="card border-0 shadow-sm bg-light p-4 sticky-top" style="top: 20px;">
+                <h5 class="fw-bold mb-3"><i class="fa-solid fa-star-half-stroke me-2 text-warning"></i>Puan Ver</h5>
 
-                    @if (!string.IsNullOrEmpty(userRole))
+                @if (!string.IsNullOrEmpty(userRole))
+                {
+                    if (hasUserReviewed)
                     {
-                        if (hasUserReviewed)
-                        {
-                            <div class="alert alert-warning text-center border-0 bg-warning-subtle text-warning-emphasis">
-                                <i class="fa-solid fa-circle-check fa-3x mb-3"></i>
-                                <h6 class="fw-bold">Değerlendirme Mevcut</h6>
-                                <p class="small mb-0">Bu kitabı daha önce puanladınız.</p>
-                            </div>
-                        }
-                        else
-                        {
-                            <form asp-action="AddReview" method="post">
-                                <input type="hidden" name="Id" value="@Model.Id" />
-                                <div class="mb-3">
-                                    <select name="NewRating" class="form-select" required>
-                                        <option value="" disabled selected>Puan Seçin</option>
-                                        <option value="5">5 - Mükemmel</option>
-                                        <option value="4">4 - Çok İyi</option>
-                                        <option value="3">3 - İdare Eder</option>
-                                        <option value="2">2 - Kötü</option>
-                                        <option value="1">1 - Çok Kötü</option>
-                                    </select>
-                                </div>
-                                <div class="mb-3">
-                                    <textarea name="NewComment" class="form-control" rows="3" placeholder="Yorumunuz..." required></textarea>
-                                </div>
-                                <button type="submit" class="btn btn-dark w-100">Gönder</button>
-                            </form>
-                        }
+                        <div class="alert alert-warning text-center border-0 bg-warning-subtle text-warning-emphasis">
+                            <i class="fa-solid fa-circle-check fa-3x mb-3"></i>
+                            <h6 class="fw-bold">Değerlendirme Mevcut</h6>
+                            <p class="small mb-0">Bu kitabı daha önce puanladınız.</p>
+                        </div>
                     }
                     else
                     {
-                        <div class="text-center">
-                            <p class="small text-muted">Yorum yapmak için giriş yapmalısınız.</p>
-                            <a asp-controller="Login" asp-action="Index" class="btn btn-outline-dark btn-sm">Giriş Yap</a>
-                        </div>
+                        <form asp-action="AddReview" method="post">
+                            <input type="hidden" name="Id" value="@Model.Id" />
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Puanınız</label>
+                                <select name="NewRating" class="form-select" required>
+                                    <option value="" disabled selected>Seçiniz...</option>
+                                    <option value="5">5 - Mükemmel</option>
+                                    <option value="4">4 - Çok İyi</option>
+                                    <option value="3">3 - İdare Eder</option>
+                                    <option value="2">2 - Kötü</option>
+                                    <option value="1">1 - Çok Kötü</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Yorumunuz</label>
+                                <textarea name="NewComment" class="form-control" rows="4" placeholder="Kitap hakkındaki düşünceleriniz..." required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-dark w-100 shadow-sm">
+                                <i class="fa-solid fa-paper-plane me-2"></i>Gönder
+                            </button>
+                        </form>
                     }
-                </div>
+                }
+                else
+                {
+                    <div class="text-center py-3">
+                        <i class="fa-solid fa-user-lock fa-2x mb-2 text-muted"></i>
+                        <p class="small text-muted">Yorum yapmak için giriş yapmalısınız.</p>
+                        <a asp-controller="Login" asp-action="Index" class="btn btn-primary btn-sm px-4">Giriş Yap</a>
+                    </div>
+                }
             </div>
         </div>
     </div>
 </div>
 
-@* ======= MODAL PENCERESİ VE JAVASCRIPT BURADA BAŞLAR ======= *@
-
-<div class="modal fade" id="confirmBorrowModal" tabindex="-1" aria-labelledby="confirmBorrowModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
+@* --- MODAL: ÖDÜNÇ ALMA ONAYI --- *@
+<div class="modal fade" id="confirmBorrowModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
             <div class="modal-header bg-success text-white">
-                <h5 class="modal-title" id="confirmBorrowModalLabel"><i class="fa-solid fa-book-reader me-2"></i> Ödünç Alma Onayı</h5>
+                <h5 class="modal-title"><i class="fa-solid fa-check-double me-2"></i> Ödünç Alma Onayı</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Kapat"></button>
             </div>
-
-            <form asp-controller="BorrowRecords" asp-action="Create" method="post" id="borrowForm">
-                <div class="modal-body">
-                    <p>
-                        **<span id="bookTitlePlaceholder" class="fw-bold"></span>** adlı kitabı ödünç almak istediğinize emin misiniz?
+            <form asp-controller="BorrowRecords" asp-action="Create" method="post">
+                <div class="modal-body py-4">
+                    <p class="mb-0 fs-5 text-center">
+                        <span id="bookTitlePlaceholder" class="fw-bold text-success"></span><br>
+                        kitabını ödünç almak istediğinize emin misiniz?
                     </p>
                     <input type="hidden" name="bookId" id="modalBookId" />
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                    <button type="submit" class="btn btn-success">Tamam, Ödünç Al</button>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Vazgeç</button>
+                    <button type="submit" class="btn btn-success px-4 shadow-sm">Evet, Ödünç Al</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-
 @section Scripts {
     <script>
-        // jQuery hazır olduğunda çalıştır
         $(document).ready(function () {
-
-            // confirmBorrowModal açılmadan hemen önce tetiklenir
+            // Ödünç alma modalına veri taşıma
             $('#confirmBorrowModal').on('show.bs.modal', function (event) {
-
-                var button = $(event.relatedTarget); // Modalı tetikleyen buton
+                var button = $(event.relatedTarget);
                 var bookId = button.data('book-id');
                 var bookTitle = button.data('book-title');
-
-                // Modal içeriğini güncelle
                 var modal = $(this);
-
-                // 1. Gizli BookId input alanına değeri yerleştir
                 modal.find('#modalBookId').val(bookId);
-
-                // 2. Kitap adını placeholder'a yerleştir
                 modal.find('#bookTitlePlaceholder').text(bookTitle);
             });
         });
+
+        // SweetAlert: Yorum Silme Onayı
+        function confirmDeleteReview(id) {
+            Swal.fire({
+                title: 'Yorumu Sil?',
+                text: "Bu işlem geri alınamaz!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Evet, Sil',
+                cancelButtonText: 'İptal',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('delete-review-' + id).submit();
+                }
+            });
+        }
+
+        // SweetAlert: Kitap Silme Onayı
+        function confirmDeleteBook(id, title) {
+            Swal.fire({
+                title: 'Kitabı Sil?',
+                html: `<b>${title}</b> isimli kitap kalıcı olarak silinecektir!`,
+                icon: 'error',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Evet, Sil',
+                cancelButtonText: 'Vazgeç',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('delete-book-form-' + id).submit();
+                }
+            });
+        }
+
+        // SweetAlert: Tamamını Oku Popup
+        function showFullComment(fullText) {
+            Swal.fire({
+                title: 'Okuyucu Yorumu',
+                html: `<div style="text-align:left; line-height:1.6; word-break: break-all;">${fullText}</div>`,
+                icon: 'info',
+                confirmButtonText: 'Kapat',
+                confirmButtonColor: '#0d6efd'
+            });
+        }
     </script>
 }
-@* ======= MODAL PENCERESİ VE JAVASCRIPT BURADA BİTER ======= *@
